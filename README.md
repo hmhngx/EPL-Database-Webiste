@@ -1,55 +1,80 @@
-# Web Development Project 6 - *RedDevil Highlights*
+# RedDevil Highlights - Manchester United Match Tracker
 
-Submitted by: **Hung Nguyen**
+A React web application for Manchester United's 2023/2024 Premier League season. View match details, statistics, and highlights with interactive charts and filtering.
 
-This web app: **RedDevil Highlights is the ultimate companion app for Manchester United fans, designed to bring the thrill of every match straight to your fingertips. Powered by the Football API, the app provides detailed match information for the 2023/2024 Premier League season, including scores, dates, venues, referees, and goal scorers. Fans can relive the action with embedded YouTube highlight videos for each game, carefully curated and easily accessible in the Match Details section. The app features a sleek, modern design with a dark theme, glowing red accents, and smooth hover effects, ensuring an immersive experience. Navigate effortlessly through a sidebar to explore all matches, and enjoy a responsive layout that works seamlessly across devices. Whether you’re checking the latest result or watching highlights of a classic Manchester United victory, RedDevil Highlights keeps you connected to the heart of the Red Devils’ season.**
+## Features
 
-Time spent: **3.5** hours spent in total
+- **Match Dashboard**: Browse all Manchester United matches with detailed information
+- **Interactive Charts**: Goals and results visualizations with toggle controls
+- **Advanced Filtering**: Filter by result, venue, goals, and search opponents
+- **Match Details**: Comprehensive match information with goal scorers and highlights
+- **Responsive Design**: Dark theme with red accents, works on all devices
 
-## Required Features
+## Tech Stack
 
-The following **required** functionality is completed:
+- React 19, Vite
+- Chart.js, React-Chartjs-2
+- React Router DOM, Framer Motion
+- Football API (api-sports.io)
 
-- [x] **Clicking on an item in the list view displays more details about it**
-  - Clicking on an item in the dashboard list navigates to a detail view for that item
-  - Detail view includes extra information about the item not included in the dashboard view
-  - The same sidebar is displayed in detail view as in dashboard view
-  - *To ensure an accurate grade, your sidebar **must** be viewable when showing the details view in your recording.*
-- [x] **Each detail view of an item has a direct, unique URL link to that item’s detail view page**
-  -  *To ensure an accurate grade, the URL/address bar of your web browser **must** be viewable in your recording.*
-- [x] **The app includes at least two unique charts developed using the fetched data that tell an interesting story**
-  - At least two charts should be incorporated into the dashboard view of the site
-  - Each chart should describe a different aspect of the dataset
+## Quick Start
 
+1. **Clone and install**
+   ```bash
+   git clone <repository-url>
+   cd football-api
+   npm install
+   ```
 
-The following **optional** features are implemented:
+2. **Set up API key**
+   ```bash
+   copy .env.example .env
+   ```
+   Edit `.env` and add your API key from [api-sports.io](https://www.api-sports.io/football-api)
 
-- [x] The site’s customized dashboard contains more content that explains what is interesting about the data 
-  - e.g., an additional description, graph annotation, suggestion for which filters to use, or an additional page that explains more about the data
-- [x] The site allows users to toggle between different data visualizations
-  - User should be able to use some mechanism to toggle between displaying and hiding visualizations 
+3. **Run development server**
+   ```bash
+   npm run dev
+   ```
 
+## Usage
 
-## Video Walkthrough
+- **Dashboard**: Browse matches, apply filters, view charts
+- **Match Details**: Click any match for comprehensive information
+- **Charts**: Toggle between goals and results visualizations
+- **Highlights**: Access YouTube highlights for each match
 
-Here's a walkthrough of implemented user stories:
-![wlkthru](public/highlight.gif)
-## Notes
+## API Integration
 
-Describe any challenges encountered while building the app.
+Uses Football API endpoints:
+- `/fixtures?team=33&season=2023&league=39` - Manchester United matches
+- `/fixtures?id={id}` - Individual match details
+- `/fixtures/events?fixture={id}` - Match events
+
+## Project Structure
+
+```
+src/
+├── components/     # React components
+├── data/          # Static data
+├── styles/        # CSS files
+└── App.jsx        # Main component
+```
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+
+## Author
+
+**Harrison Nguyen**
+
+## Demo
+
+![Application Walkthrough](public/highlight.gif)
 
 ## License
 
-    Copyright [2025] [Hung Nguyen]
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+Apache License, Version 2.0

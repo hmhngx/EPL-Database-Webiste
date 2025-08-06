@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FaChartLine, FaEquals, FaThumbsUp, FaThumbsDown, FaSpinner } from 'react-icons/fa';
+import { FaChartLine, FaThumbsUp, FaThumbsDown, FaSpinner, FaHandshake, FaTrophy, FaTimes,} from 'react-icons/fa';
 import "../styles/TeamStats.css";
 
 const TeamStats = ({ teamId = 33, season = 2023, league = 39 }) => {
@@ -10,8 +10,8 @@ const TeamStats = ({ teamId = 33, season = 2023, league = 39 }) => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const apiKey = "6c1560b8097a95c33a1287c88e511f5b";
-        if (!apiKey) throw new Error('API key is missing');
+        const apiKey = import.meta.env.VITE_FOOTBALL_API_KEY;
+        if (!apiKey) throw new Error('API key is missing. Please check your .env file.');
 
         const res = await fetch(
           `https://v3.football.api-sports.io/teams/statistics?team=${teamId}&season=${season}&league=${league}`,
@@ -32,6 +32,44 @@ const TeamStats = ({ teamId = 33, season = 2023, league = 39 }) => {
 
     fetchStats();
   }, [teamId, season, league]);
+
+  // Function to render form results with proper styling
+  const renderFormResults = (formString) => {
+    if (!formString) return <span className="no-form">No form data available</span>;
+    
+    return formString.split('').map((result, index) => {
+      let icon, className, label;
+      
+      switch (result) {
+        case 'W':
+          icon = <FaTrophy />;
+          className = 'form-win';
+          label = 'Win';
+          break;
+        case 'L':
+          icon = <FaTimes />;
+          className = 'form-loss';
+          label = 'Loss';
+          break;
+        case 'D':
+          icon = <FaHandshake />;
+          className = 'form-draw';
+          label = 'Draw';
+          break;
+        default:
+          icon = <FaChartLine />;
+          className = 'form-unknown';
+          label = result;
+      }
+      
+      return (
+        <div key={index} className={`form-result ${className}`} title={label}>
+          <div className="form-icon">{icon}</div>
+          <div className="form-letter">{result}</div>
+        </div>
+      );
+    });
+  };
 
   if (loading) {
     return (
@@ -61,14 +99,16 @@ const TeamStats = ({ teamId = 33, season = 2023, league = 39 }) => {
           <p>{stats.fixtures.loses.total}</p>
         </div>
         <div className="stat-item draw">
-          <FaEquals className="stat-icon" />
+          <FaHandshake className="stat-icon" />
           <h3>Draws</h3>
           <p>{stats.fixtures.draws.total}</p>
         </div>
-        <div className="stat-item">
+        <div className="stat-item form-section">
           <FaChartLine className="stat-icon" />
-          <h3>Form</h3>
-          <p>{stats.form}</p>
+          <h3>Recent Form</h3>
+          <div className="form-display">
+            {renderFormResults(stats.form)}
+          </div>
         </div>
       </div>
     </div>

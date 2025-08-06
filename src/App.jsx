@@ -26,8 +26,8 @@ function App() {
     const fetchAllMatches = async () => {
       try {
         setLoading(true);
-        const apiKey = "6c1560b8097a95c33a1287c88e511f5b";
-        if (!apiKey) throw new Error('API key is missing');
+        const apiKey = import.meta.env.VITE_FOOTBALL_API_KEY;
+        if (!apiKey) throw new Error('API key is missing. Please check your .env file.');
   
         const response = await fetch(
           `https://v3.football.api-sports.io/fixtures?team=33&season=2023&league=39`,

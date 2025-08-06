@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { FaFutbol, FaVideo } from 'react-icons/fa';
+import { FaFutbol, FaVideo, FaTrophy, FaTimes, FaHandshake } from 'react-icons/fa';
 import { highlightVideos } from '../data/highlightVideos'; 
 import '../styles/MatchDetail.css';
 
@@ -17,8 +17,8 @@ const MatchDetail = () => {
     const fetchMatchDetails = async () => {
       try {
         setLoading(true);
-        const apiKey = "6c1560b8097a95c33a1287c88e511f5b";
-        if (!apiKey) throw new Error('API key is missing');
+        const apiKey = import.meta.env.VITE_FOOTBALL_API_KEY;
+        if (!apiKey) throw new Error('API key is missing. Please check your .env file.');
 
         const matchResponse = await fetch(
           `https://v3.football.api-sports.io/fixtures?id=${id}`,
@@ -104,6 +104,25 @@ const MatchDetail = () => {
   const venueCity = match.fixture.venue.city;
   const referee = match.fixture.referee || 'Not available';
 
+  // Calculate match result for form display
+  const homeGoals = match.goals.home;
+  const awayGoals = match.goals.away;
+  let resultType, resultIcon, resultClass;
+  
+  if (homeGoals > awayGoals) {
+    resultType = 'W';
+    resultIcon = <FaTrophy />;
+    resultClass = 'win';
+  } else if (homeGoals < awayGoals) {
+    resultType = 'L';
+    resultIcon = <FaTimes />;
+    resultClass = 'loss';
+  } else {
+    resultType = 'D';
+    resultIcon = <FaHandshake />;
+    resultClass = 'draw';
+  }
+
   const isEmbedLink = highlightLink && highlightLink.includes('youtube.com/embed');
 
   return (
@@ -112,6 +131,22 @@ const MatchDetail = () => {
       <div className="main-content">
         <div className="match-detail">
           <h1>Match Details</h1>
+          
+          {/* Result Form Display */}
+          <div className="result-form">
+            <div className={`result-indicator ${resultClass}`}>
+              <div className="result-icon">
+                {resultIcon}
+              </div>
+              <div className="result-letter">
+                {resultType}
+              </div>
+              <div className="result-label">
+                {resultType === 'W' ? 'WIN' : resultType === 'L' ? 'LOSS' : resultType === 'D' ? 'DRAW' : 'TBD'}
+              </div>
+            </div>
+          </div>
+
           <div className="match-info">
             <h2>{isHome ? `Man United vs ${opponent}` : `${opponent} vs Man United`}</h2>
             <p><strong>Result:</strong> {result}</p>
