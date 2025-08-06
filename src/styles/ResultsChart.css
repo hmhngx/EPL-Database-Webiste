@@ -1,14 +1,353 @@
 .chart-section {
-    background: rgba(30, 30, 30, 0.85);
-    border: 1px solid var(--accent-color);
-    border-radius: 12px;
-    padding: 2rem;
-    margin-bottom: 2rem;
+  background: rgba(30, 30, 30, 0.85);
+  border: 1px solid var(--accent-color);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.chart-header h2 {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 1.8rem;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.chart-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: var(--text-color);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.toggle-btn.active {
+  background: rgba(0, 212, 255, 0.2);
+  border-color: #00d4ff;
+  color: #00d4ff;
+}
+
+.toggle-btn svg {
+  font-size: 1rem;
+}
+
+/* Stats Summary */
+.stats-summary {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  min-width: 100px;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.stat-label {
+  color: #ccc;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  color: var(--text-color);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* Custom Tooltip Styles */
+.custom-tooltip {
+  background: rgba(20, 20, 20, 0.95);
+  border: 1px solid var(--accent-color);
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  max-width: 250px;
+  line-height: 1.4;
+}
+
+.tooltip-title {
+  font-weight: 600;
+  color: #00d4ff;
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+}
+
+.tooltip-date {
+  color: #ccc;
+  margin: 0 0 0.5rem 0;
+  font-size: 0.85rem;
+}
+
+.tooltip-match {
+  color: var(--text-color);
+  margin: 0 0 0.5rem 0;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.tooltip-opponent {
+  color: #ff6b35;
+  margin: 0 0 0.5rem 0;
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
+.tooltip-result {
+  color: var(--text-color);
+  margin: 0 0 0.25rem 0;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.tooltip-streak {
+  color: #ffa726;
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+/* Result Dots */
+.result-dot {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.result-dot:hover {
+  r: 10;
+  filter: brightness(1.2);
+}
+
+/* Filtered dots (low opacity) */
+.result-dot[style*="opacity: 0.3"] {
+  filter: grayscale(50%);
+}
+
+/* Chart legend to explain filtering */
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  white-space: nowrap;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  flex-shrink: 0;
+}
+
+.legend-dot.active {
+  opacity: 1;
+}
+
+.legend-dot.inactive {
+  opacity: 0.3;
+  filter: grayscale(50%);
+}
+
+.legend-dot.win {
+  background: #4CAF50;
+}
+
+.legend-dot.loss {
+  background: #F44336;
+}
+
+.legend-dot.draw {
+  background: #FFC107;
+}
+
+/* Streak Visualization */
+.streak-visualization {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.streak-visualization h3 {
+  color: var(--text-color);
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.streak-container {
+  display: block;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 100%; 
+  gap: 0.5rem;
+}
+
+.streak-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  min-width: -webkit-fill-available;
+}
+
+.streak-item.win {
+  background: rgba(76, 175, 80, 0.2);
+  border: 1px solid #4CAF50;
+  color: #4CAF50;
+}
+
+.streak-item.loss {
+  background: rgba(244, 67, 54, 0.2);
+  border: 1px solid #F44336;
+  color: #F44336;
+}
+
+.streak-item.draw {
+  background: rgba(255, 193, 7, 0.2);
+  border: 1px solid #FFC107;
+  color: #FFC107;
+}
+
+.streak-type {
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.streak-length {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .chart-header {
+    flex-direction: column;
+    align-items: stretch;
   }
   
-  .chart-section h2 {
-    margin: 0 0 2rem;
-    color: var(--text-color);
-    text-align: center;
-    font-size: 1.8rem;
+  .chart-controls {
+    justify-content: center;
   }
+  
+  .control-group {
+    justify-content: center;
+  }
+  
+  .stats-summary {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .stat-card {
+    width: 100%;
+    max-width: 200px;
+  }
+  
+  .streak-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .streak-item {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-section {
+    padding: 1rem;
+  }
+  
+  .chart-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .chart-controls {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .control-group {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .toggle-btn {
+    justify-content: center;
+  }
+}

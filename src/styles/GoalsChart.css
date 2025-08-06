@@ -1,14 +1,421 @@
 .chart-section {
-    background: rgba(30, 30, 30, 0.85);
-    border: 1px solid var(--accent-color);
-    border-radius: 12px;
-    padding: 2rem;
-    margin-bottom: 2rem;
+  background: rgba(30, 30, 30, 0.85);
+  border: 1px solid var(--accent-color);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.chart-header h2 {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 1.8rem;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.chart-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.control-group label {
+  color: var(--text-color);
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.control-icon {
+  color: var(--primary-color);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.control-group:hover .control-icon {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 5px var(--primary-glow));
+}
+
+/* Enhanced Dropdown Container */
+.dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+  border-radius: 8px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.dropdown-container:hover::before {
+  opacity: 1;
+}
+
+.view-selector {
+  background: rgba(20, 20, 20, 0.9);
+  border: 2px solid rgba(218, 41, 28, 0.4);
+  border-radius: 8px;
+  color: var(--text-color);
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  position: relative;
+  min-width: 160px;
+  font-weight: 500;
+}
+
+.view-selector::after {
+  content: '▼';
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--primary-color);
+  font-size: 0.7rem;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  font-weight: bold;
+}
+
+.view-selector:hover {
+  background: rgba(30, 30, 30, 0.95);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 15px rgba(218, 41, 28, 0.3);
+  transform: translateY(-1px);
+}
+
+.view-selector:hover::after {
+  transform: translateY(-50%) rotate(180deg);
+  color: var(--primary-color);
+}
+
+.view-selector:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(218, 41, 28, 0.2);
+  background: rgba(30, 30, 30, 0.95);
+}
+
+.view-selector:focus::after {
+  transform: translateY(-50%) rotate(180deg);
+  color: var(--primary-color);
+}
+
+/* Dropdown Options Styling */
+.view-selector option {
+  background: rgba(20, 20, 20, 0.95);
+  color: var(--text-color);
+  padding: 0.75rem;
+  border: none;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.view-selector option:hover {
+  background: rgba(218, 41, 28, 0.2);
+  color: var(--primary-color);
+}
+
+.view-selector option:checked {
+  background: rgba(218, 41, 28, 0.3);
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+.toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(20, 20, 20, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: var(--text-color);
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  font-weight: 500;
+  position: relative;
+  overflow: hidden;
+}
+
+.toggle-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.4s ease;
+}
+
+.toggle-btn:hover::before {
+  transform: translateX(100%);
+}
+
+.toggle-btn:hover {
+  background: rgba(30, 30, 30, 0.95);
+  border-color: var(--accent-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(218, 41, 28, 0.3);
+}
+
+.toggle-btn.active {
+  background: rgba(218, 41, 28, 0.2);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  box-shadow: 0 0 15px rgba(218, 41, 28, 0.4);
+}
+
+.toggle-btn.active:hover {
+  background: rgba(218, 41, 28, 0.3);
+  box-shadow: 0 0 20px rgba(218, 41, 28, 0.5);
+}
+
+.toggle-btn svg {
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.toggle-btn:hover svg {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 5px var(--primary-glow));
+}
+
+.toggle-btn.active svg {
+  color: var(--primary-color);
+  filter: drop-shadow(0 0 8px var(--primary-glow));
+}
+
+/* Custom Tooltip Styles */
+.custom-tooltip {
+  background: rgba(20, 20, 20, 0.95);
+  border: 1px solid var(--accent-color);
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+.tooltip-title {
+  font-weight: 600;
+  color: #00d4ff;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.tooltip-date {
+  color: #ccc;
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.tooltip-match {
+  color: var(--text-color);
+  margin: 0 0 0.5rem 0;
+  font-weight: 500;
+}
+
+.tooltip-opponent {
+  color: #ff6b35;
+  margin: 0 0 0.5rem 0;
+  font-style: italic;
+}
+
+.tooltip-value {
+  color: var(--text-color);
+  margin: 0 0 0.25rem 0;
+  font-weight: 500;
+}
+
+.tooltip-trendline {
+  color: #ffa726;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Chart Insights */
+.chart-insights {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.insight-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.insight-item.peak {
+  background: rgba(46, 213, 115, 0.2);
+  border: 1px solid #2ed573;
+  color: #2ed573;
+}
+
+.insight-item.valley {
+  background: rgba(255, 71, 87, 0.2);
+  border: 1px solid #ff4757;
+  color: #ff4757;
+}
+
+.insight-label {
+  font-weight: 600;
+}
+
+.insight-value {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .chart-header {
+    flex-direction: column;
+    align-items: stretch;
   }
   
-  .chart-section h2 {
-    margin: 0 0 2rem;
-    color: var(--text-color);
-    text-align: center;
-    font-size: 1.8rem;
+  .chart-controls {
+    justify-content: center;
   }
+  
+  .control-group {
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .view-selector {
+    min-width: 140px;
+    padding: 0.6rem 2rem 0.6rem 0.8rem;
+    font-size: 0.85rem;
+  }
+  
+  .toggle-btn {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+  }
+  
+  .chart-insights {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .insight-item {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-section {
+    padding: 1rem;
+  }
+  
+  .chart-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .chart-controls {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .control-group {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .view-selector {
+    min-width: 120px;
+    padding: 0.5rem 1.8rem 0.5rem 0.7rem;
+    font-size: 0.8rem;
+  }
+  
+  .toggle-btn {
+    padding: 0.5rem 0.7rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Animation for dropdown opening */
+@keyframes dropdownOpen {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.view-selector:focus {
+  animation: dropdownOpen 0.3s ease;
+}
+
+/* Custom scrollbar for dropdown */
+.view-selector::-webkit-scrollbar {
+  width: 6px;
+}
+
+.view-selector::-webkit-scrollbar-track {
+  background: rgba(20, 20, 20, 0.8);
+  border-radius: 3px;
+}
+
+.view-selector::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 3px;
+}
+
+.view-selector::-webkit-scrollbar-thumb:hover {
+  background: rgba(218, 41, 28, 0.8);
+}
