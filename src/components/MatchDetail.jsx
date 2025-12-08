@@ -17,47 +17,73 @@ const MatchDetail = () => {
     const fetchMatchDetails = async () => {
       try {
         setLoading(true);
-        const apiKey = import.meta.env.VITE_FOOTBALL_API_KEY;
-        if (!apiKey) throw new Error('API key is missing. Please check your .env file.');
+        setError(null);
+        
+        // Use internal API instead of api-sports.io
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const matchResponse = await fetch(`${apiBaseUrl}/api/matches/${id}`);
 
-        const matchResponse = await fetch(
-          `https://v3.football.api-sports.io/fixtures?id=${id}`,
-          { headers: { 'x-apisports-key': apiKey } }
-        );
-
-        if (!matchResponse.ok) throw new Error(`HTTP error! Status: ${matchResponse.status}`);
+        if (!matchResponse.ok) {
+          if (matchResponse.status === 404) {
+            throw new Error('Match not found');
+          }
+          throw new Error(`HTTP error! Status: ${matchResponse.status}`);
+        }
+        
         const matchData = await matchResponse.json();
-        if (matchData.response && matchData.response.length > 0) {
-          setMatch(matchData.response[0]);
+        
+        if (matchData.success && matchData.data) {
+          // Transform API response to match component format
+          const transformedMatch = {
+            fixture: {
+              id: matchData.data.match_id,
+              date: matchData.data.date,
+              venue: {
+                name: matchData.data.stadium_name || 'Unknown',
+                city: matchData.data.stadium_city || 'Unknown',
+              },
+              referee: matchData.data.referee || 'Not available',
+              status: {
+                long: 'Finished', // Assuming all matches in DB are finished
+              },
+            },
+            teams: {
+              home: {
+                id: matchData.data.home_club_id,
+                name: matchData.data.home_club,
+              },
+              away: {
+                id: matchData.data.away_club_id,
+                name: matchData.data.away_club,
+              },
+            },
+            goals: {
+              home: matchData.data.home_goals,
+              away: matchData.data.away_goals,
+            },
+          };
+          
+          setMatch(transformedMatch);
 
+          // Set highlight link
           if (highlightVideos[id]) {
             setHighlightLink(highlightVideos[id]);
           } else {
-            const isHome = matchData.response[0].teams.home.id === 33;
-            const opponent = isHome ? matchData.response[0].teams.away.name : matchData.response[0].teams.home.name;
-            const matchTitle = isHome ? `Manchester United vs ${opponent}` : `${opponent} vs Manchester United`;
+            const matchTitle = `${matchData.data.home_club} vs ${matchData.data.away_club}`;
             const searchQuery = `${matchTitle} 2023/2024 highlights`;
             const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
             setHighlightLink(youtubeSearchUrl);
           }
+          
+          // Note: Events (goals, cards, etc.) are not available in current DB schema
+          // This would need to be added to the database or fetched from another source
+          setEvents([]);
         } else {
-          throw new Error('Match not found');
-        }
-
-        const eventsResponse = await fetch(
-          `https://v3.football.api-sports.io/fixtures/events?fixture=${id}`,
-          { headers: { 'x-apisports-key': apiKey } }
-        );
-
-        if (!eventsResponse.ok) throw new Error(`HTTP error! Status: ${eventsResponse.status}`);
-        const eventsData = await eventsResponse.json();
-        if (eventsData.response) {
-          setEvents(eventsData.response);
-        } else {
-          throw new Error('No events found for this match');
+          throw new Error('Invalid API response structure');
         }
       } catch (error) {
         setError(error.message);
+        console.error('Error fetching match details:', error);
       } finally {
         setLoading(false);
       }
@@ -69,7 +95,14 @@ const MatchDetail = () => {
   const goals = events.filter(event => event.type === 'Goal' && event.detail !== 'Missed Penalty');
 
   if (loading) {
-    return <div className="loading">Loading match details...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading match details...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -77,8 +110,13 @@ const MatchDetail = () => {
       <div className="app-container">
         <Sidebar />
         <div className="main-content">
-          <p className="error">Error: {error}</p>
-          <Link to="/" className="back-link">Back to Dashboard</Link>
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+            <p className="font-semibold">Error:</p>
+            <p>{error}</p>
+          </div>
+          <Link to="/matches" className="text-primary hover:text-accent mt-4 inline-block">
+            ← Back to Matches
+          </Link>
         </div>
       </div>
     );
@@ -89,15 +127,17 @@ const MatchDetail = () => {
       <div className="app-container">
         <Sidebar />
         <div className="main-content">
-          <p className="error">Match not found</p>
-          <Link to="/" className="back-link">Back to Dashboard</Link>
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+            <p className="font-semibold">Match not found</p>
+          </div>
+          <Link to="/matches" className="text-primary hover:text-accent mt-4 inline-block">
+            ← Back to Matches
+          </Link>
         </div>
       </div>
     );
   }
 
-  const isHome = match.teams.home.id === 33;
-  const opponent = isHome ? match.teams.away.name : match.teams.home.name;
   const result = `${match.goals.home} - ${match.goals.away}`;
   const matchDate = new Date(match.fixture.date).toLocaleString();
   const venueName = match.fixture.venue.name;
@@ -148,12 +188,16 @@ const MatchDetail = () => {
           </div>
 
           <div className="match-info">
-            <h2>{isHome ? `Man United vs ${opponent}` : `${opponent} vs Man United`}</h2>
-            <p><strong>Result:</strong> {result}</p>
-            <p><strong>Date:</strong> {matchDate}</p>
-            <p><strong>Venue:</strong> {venueName}, {venueCity}</p>
-            <p><strong>Referee:</strong> {referee}</p>
-            <p><strong>Status:</strong> {match.fixture.status.long}</p>
+            <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">
+              {match.teams.home.name} vs {match.teams.away.name}
+            </h2>
+            <div className="space-y-2 text-gray-700">
+              <p><strong>Result:</strong> {result}</p>
+              <p><strong>Date:</strong> {matchDate}</p>
+              <p><strong>Venue:</strong> {venueName}, {venueCity}</p>
+              <p><strong>Referee:</strong> {referee}</p>
+              <p><strong>Status:</strong> {match.fixture.status.long}</p>
+            </div>
           </div>
 
           {/* Goal Scorers Section */}
@@ -206,7 +250,9 @@ const MatchDetail = () => {
             )}
           </div>
 
-          <Link to="/" className="back-link">Back to Dashboard</Link>
+          <Link to="/matches" className="inline-block mt-6 px-4 py-2 bg-primary text-white rounded-lg hover:bg-accent hover:text-primary transition-colors">
+            ← Back to Matches
+          </Link>
         </div>
       </div>
     </div>

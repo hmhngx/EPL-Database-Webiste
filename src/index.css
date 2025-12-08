@@ -1,21 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
 :root {
-  --primary-color: #DA291C;
-  --primary-glow: rgba(218, 41, 28, 0.8);
-  --secondary-color: #1E1E1E;
-  --accent-color: #333333;
+  --primary-color: #38003C;
+  --accent-color: #00FF85;
+  --secondary-color: #04f5ff;
+  --background-color: #F3F4F6;
   --text-color: #FFFFFF;
   --success-color: #4CAF50;
   --danger-color: #F44336;
   --warning-color: #FFC107;
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
-  background: linear-gradient(135deg, #0a0a0a 0%, #1e1e1e 100%);
-  color: var(--text-color);
-  min-height: 100vh;
+@layer base {
+  body {
+    @apply font-body bg-background text-gray-900;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
 }
 
 * {

@@ -9,7 +9,7 @@ import TeamStats from './components/TeamStats';
 import ResultsChart from './components/ResultsChart'; 
 import './styles/App.css';
 
-function App() {
+function App({ teamId = null }) {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,82 +26,175 @@ function App() {
     const fetchAllMatches = async () => {
       try {
         setLoading(true);
-        const apiKey = import.meta.env.VITE_FOOTBALL_API_KEY;
-        if (!apiKey) throw new Error('API key is missing. Please check your .env file.');
+        setError(null);
+        
+        // Use internal API instead of api-sports.io
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        let url = `${apiBaseUrl}/api/matches`;
+        
+        // If teamId is provided, filter by team (would need backend support)
+        // For now, fetch all matches and filter client-side if needed
+        const response = await fetch(url);
   
-        const response = await fetch(
-          `https://v3.football.api-sports.io/fixtures?team=33&season=2023&league=39`,
-          { headers: { 'x-apisports-key': apiKey } }
-        );
-  
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
         const data = await response.json();
-        if (data.response && Array.isArray(data.response)) {
-          console.log(
-            'Matches:',
-            data.response.map(match => ({
-              id: match.fixture.id,
-              teams: `${match.teams.home.name} vs ${match.teams.away.name}`,
-              date: match.fixture.date,
-            }))
-          );
-          setMatches(data.response);
+        
+        if (data.success && Array.isArray(data.data)) {
+          // Transform API response to match component format
+          const transformedMatches = data.data.map(match => ({
+            fixture: {
+              id: match.match_id,
+              date: match.date,
+            },
+            teams: {
+              home: {
+                id: match.home_club_id,
+                name: match.home_club,
+              },
+              away: {
+                id: match.away_club_id,
+                name: match.away_club,
+              },
+            },
+            goals: {
+              home: match.home_goals,
+              away: match.away_goals,
+            },
+          }));
+          
+          setMatches(transformedMatches);
         } else {
           throw new Error('Invalid API response structure');
         }
       } catch (error) {
         setError(error.message);
+        console.error('Error fetching matches:', error);
       } finally {
         setLoading(false);
       }
     };
   
     fetchAllMatches();
-  }, []);
+  }, [teamId]);
 
   const filteredMatches = useMemo(() => {
     let filtered = [...matches];
+    
+    // Filter by team if teamId is provided
+    if (teamId) {
+      filtered = filtered.filter(match => 
+        match.teams.home.id === teamId || match.teams.away.id === teamId
+      );
+    }
+    
     if (searchQuery) {
       filtered = filtered.filter(match => {
-        const opponent = match.teams.home.id === 33 ? match.teams.away.name : match.teams.home.name;
-        return opponent.toLowerCase().includes(searchQuery.toLowerCase());
+        const homeTeam = match.teams.home.name.toLowerCase();
+        const awayTeam = match.teams.away.name.toLowerCase();
+        const query = searchQuery.toLowerCase();
+        return homeTeam.includes(query) || awayTeam.includes(query);
       });
     }
+    
     if (resultFilter !== 'all') {
       filtered = filtered.filter(match => {
-        const isHome = match.teams.home.id === 33;
         const homeGoals = match.goals.home;
         const awayGoals = match.goals.away;
-        if (resultFilter === 'win') return isHome ? homeGoals > awayGoals : awayGoals > homeGoals;
-        if (resultFilter === 'loss') return isHome ? homeGoals < awayGoals : awayGoals < homeGoals;
-        if (resultFilter === 'draw') return homeGoals === awayGoals;
+        
+        if (teamId) {
+          // For specific team: determine win/loss/draw from team's perspective
+          const isHome = match.teams.home.id === teamId;
+          if (resultFilter === 'win') {
+            return isHome ? homeGoals > awayGoals : awayGoals > homeGoals;
+          }
+          if (resultFilter === 'loss') {
+            return isHome ? homeGoals < awayGoals : awayGoals < homeGoals;
+          }
+          if (resultFilter === 'draw') {
+            return homeGoals === awayGoals;
+          }
+        } else {
+          // For league-wide: show all matches of that result type
+          if (resultFilter === 'win') {
+            return homeGoals !== awayGoals; // Any win (home or away)
+          }
+          if (resultFilter === 'loss') {
+            return false; // Loss doesn't make sense league-wide
+          }
+          if (resultFilter === 'draw') {
+            return homeGoals === awayGoals;
+          }
+        }
         return true;
       });
     }
-    if (venueFilter !== 'all') {
+    
+    if (venueFilter !== 'all' && teamId) {
+      // Venue filter only makes sense when filtering by a specific team
       filtered = filtered.filter(match =>
-        venueFilter === 'home' ? match.teams.home.id === 33 : match.teams.away.id === 33
+        venueFilter === 'home' 
+          ? match.teams.home.id === teamId 
+          : match.teams.away.id === teamId
       );
     }
+    
     if (minGoals !== '') {
-      filtered = filtered.filter(match => (match.goals.home + match.goals.away) >= Number(minGoals));
+      filtered = filtered.filter(match => 
+        (match.goals.home + match.goals.away) >= Number(minGoals)
+      );
     }
+    
     if (maxGoals !== '') {
-      filtered = filtered.filter(match => (match.goals.home + match.goals.away) <= Number(maxGoals));
+      filtered = filtered.filter(match => 
+        (match.goals.home + match.goals.away) <= Number(maxGoals)
+      );
     }
+    
     return filtered;
-  }, [searchQuery, resultFilter, venueFilter, minGoals, maxGoals, matches]);
+  }, [searchQuery, resultFilter, venueFilter, minGoals, maxGoals, matches, teamId]);
 
-  const totalMatches = matches.length;
-  const wins = matches.filter(match => {
-    const isHome = match.teams.home.id === 33;
-    const homeGoals = match.goals.home;
-    const awayGoals = match.goals.away;
-    return isHome ? homeGoals > awayGoals : awayGoals > homeGoals;
-  }).length;
+  // Calculate stats for the filtered matches
+  const stats = useMemo(() => {
+    if (teamId) {
+      // Calculate stats from team's perspective
+      const wins = filteredMatches.filter(match => {
+        const isHome = match.teams.home.id === teamId;
+        const homeGoals = match.goals.home;
+        const awayGoals = match.goals.away;
+        return isHome ? homeGoals > awayGoals : awayGoals > homeGoals;
+      }).length;
+      
+      return {
+        totalMatches: filteredMatches.length,
+        wins,
+      };
+    } else {
+      // League-wide stats
+      const wins = filteredMatches.filter(match => 
+        match.goals.home !== match.goals.away
+      ).length;
+      
+      return {
+        totalMatches: filteredMatches.length,
+        wins,
+      };
+    }
+  }, [filteredMatches, teamId]);
+
+  const { totalMatches, wins } = stats;
 
   if (loading) {
-    return <div className="loading">Loading matches...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading matches...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -109,13 +202,31 @@ function App() {
       <Sidebar />
       <div className="main-content">
         <div className="dashboard">
-        <div className="header">
-          <img src="/mulogo.png" alt="Manchester United Logo" className="club-logo" />
-            <h1>Manchester United 2023/2024 Season Dashboard</h1>
-        </div>
-          {error && <p className="error">Error: {error}</p>}
-          <TeamStats />
+          <div className="header">
+            {teamId ? (
+              <>
+                <h1 className="text-3xl font-heading font-bold text-gray-900">
+                  Team Dashboard
+                </h1>
+              </>
+            ) : (
+              <h1 className="text-3xl font-heading font-bold text-gray-900">
+                Premier League 2023/2024 Season Dashboard
+              </h1>
+            )}
+          </div>
+          
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
+              <p className="font-semibold">Error:</p>
+              <p>{error}</p>
+            </div>
+          )}
+          
+          {teamId && <TeamStats teamId={teamId} matches={matches} />}
+          
           <StatsSummary totalMatches={totalMatches} wins={wins} />
+          
           <Filters
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
@@ -123,7 +234,9 @@ function App() {
             setResultFilter={setResultFilter}
             venueFilter={venueFilter}
             setVenueFilter={setVenueFilter}
+            teamId={teamId}
           />
+          
           <GoalsFilter
             goalsSlider={goalsSlider}
             setGoalsSlider={setGoalsSlider}
@@ -132,38 +245,61 @@ function App() {
             maxGoals={maxGoals}
             setMaxGoals={setMaxGoals}
           />
+          
           {/* Data Insights Section */}
-          <div className="data-insights">
-            <h2>Data Insights</h2>
-            <p>
-              Explore Manchester United's 2023/2024 season performance in the Premier League. Use the filters to analyze specific match outcomes:
-              - Filter by "Wins" to see United's best performances.
-              - Set a "Min Goals" of 3 to focus on high-scoring games.
-              - Toggle the charts below to compare goals scored and match results over the season.
+          <div className="data-insights bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h2 className="text-2xl font-heading font-bold text-gray-900 mb-3">
+              Data Insights
+            </h2>
+            <p className="text-gray-600">
+              {teamId 
+                ? "Explore team performance in the Premier League. Use the filters to analyze specific match outcomes."
+                : "Explore the Premier League 2023/2024 season. Use the filters to analyze specific match outcomes, team performances, and goal statistics."
+              }
             </p>
+            <ul className="list-disc list-inside mt-3 text-gray-600 space-y-1">
+              <li>Filter by result type to see wins, losses, or draws</li>
+              <li>Set goal filters to focus on high-scoring or low-scoring games</li>
+              <li>Toggle the charts below to compare goals scored and match results</li>
+            </ul>
           </div>
+          
           {/* Chart Toggles */}
-          <div className="chart-toggles">
-            <label>
+          <div className="chart-toggles bg-white rounded-xl shadow-lg p-4 mb-6 flex flex-wrap gap-4">
+            <label className="flex items-center space-x-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={showGoalsChart}
                 onChange={() => setShowGoalsChart(!showGoalsChart)}
+                className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
               />
-              Show Goals Chart
+              <span className="text-gray-700">Show Goals Chart</span>
             </label>
-            <label>
+            <label className="flex items-center space-x-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={showResultsChart}
                 onChange={() => setShowResultsChart(!showResultsChart)}
+                className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
               />
-              Show Results Chart
+              <span className="text-gray-700">Show Results Chart</span>
             </label>
           </div>
+          
           {/* Charts */}
-          {showGoalsChart && <GoalsChart matches={filteredMatches} />}
-          {showResultsChart && <ResultsChart matches={filteredMatches} />}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {showGoalsChart && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <GoalsChart matches={filteredMatches} />
+              </div>
+            )}
+            {showResultsChart && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <ResultsChart matches={filteredMatches} />
+              </div>
+            )}
+          </div>
+          
           <MatchList matches={filteredMatches} />
         </div>
       </div>

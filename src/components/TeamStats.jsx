@@ -1,37 +1,71 @@
-import React, { useEffect, useState } from 'react';
-import { FaChartLine, FaThumbsUp, FaThumbsDown, FaSpinner, FaHandshake, FaTrophy, FaTimes,} from 'react-icons/fa';
+import React, { useMemo } from 'react';
+import { FaChartLine, FaThumbsUp, FaThumbsDown, FaHandshake, FaTrophy, FaTimes } from 'react-icons/fa';
 import "../styles/TeamStats.css";
 
-const TeamStats = ({ teamId = 33, season = 2023, league = 39 }) => {
-  const [stats, setStats] = useState(null);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
+const TeamStats = ({ teamId, matches = [] }) => {
+  // Calculate stats from matches data
+  const stats = useMemo(() => {
+    if (!teamId || !matches || matches.length === 0) {
+      return null;
+    }
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const apiKey = import.meta.env.VITE_FOOTBALL_API_KEY;
-        if (!apiKey) throw new Error('API key is missing. Please check your .env file.');
+    const teamMatches = matches.filter(match => 
+      match.teams.home.id === teamId || match.teams.away.id === teamId
+    );
 
-        const res = await fetch(
-          `https://v3.football.api-sports.io/teams/statistics?team=${teamId}&season=${season}&league=${league}`,
-          { headers: { 'x-apisports-key': apiKey } }
-        );
+    if (teamMatches.length === 0) {
+      return null;
+    }
 
-        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-        const data = await res.json();
-        if (!data.response) throw new Error('No statistics data returned');
+    let wins = 0;
+    let losses = 0;
+    let draws = 0;
+    const form = [];
 
-        setStats(data.response);
-      } catch (err) {
-        setError(`Failed to fetch stats: ${err.message}`);
-      } finally {
-        setLoading(false);
+    // Process matches in chronological order (oldest first)
+    const sortedMatches = [...teamMatches].sort((a, b) => 
+      new Date(a.fixture.date) - new Date(b.fixture.date)
+    );
+
+    sortedMatches.forEach(match => {
+      const isHome = match.teams.home.id === teamId;
+      const homeGoals = match.goals.home;
+      const awayGoals = match.goals.away;
+
+      if (homeGoals > awayGoals) {
+        if (isHome) {
+          wins++;
+          form.push('W');
+        } else {
+          losses++;
+          form.push('L');
+        }
+      } else if (awayGoals > homeGoals) {
+        if (isHome) {
+          losses++;
+          form.push('L');
+        } else {
+          wins++;
+          form.push('W');
+        }
+      } else {
+        draws++;
+        form.push('D');
       }
-    };
+    });
 
-    fetchStats();
-  }, [teamId, season, league]);
+    // Get last 5 matches for recent form
+    const recentForm = form.slice(-5).join('');
+
+    return {
+      fixtures: {
+        wins: { total: wins },
+        loses: { total: losses },
+        draws: { total: draws },
+      },
+      form: recentForm,
+    };
+  }, [teamId, matches]);
 
   // Function to render form results with proper styling
   const renderFormResults = (formString) => {
@@ -71,17 +105,16 @@ const TeamStats = ({ teamId = 33, season = 2023, league = 39 }) => {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="stats-loading">
-        <FaSpinner className="loading-icon" /> Loading team stats...
-      </div>
-    );
+  if (!teamId) {
+    return null; // Don't show team stats if no team is selected
   }
 
-  if (error) return <p className="error">{error}</p>;
-  if (!stats || !stats.fixtures || !stats.form) {
-    return <p className="error">Invalid statistics data</p>;
+  if (!stats || !stats.fixtures) {
+    return (
+      <div className="bg-gray-100 rounded-xl p-6 text-center">
+        <p className="text-gray-600">No statistics available for this team.</p>
+      </div>
+    );
   }
 
   return (

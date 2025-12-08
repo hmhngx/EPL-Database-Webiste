@@ -10,7 +10,6 @@ const GoalsChart = ({ matches }) => {
 
   const chartData = useMemo(() => {
     return matches.map((match, index) => {
-      const isHome = match.teams.home.id === 33;
       const homeGoals = match.goals.home;
       const awayGoals = match.goals.away;
       
@@ -18,11 +17,12 @@ const GoalsChart = ({ matches }) => {
         matchNumber: index + 1,
         name: new Date(match.fixture.date).toLocaleDateString(),
         total: homeGoals + awayGoals,
-        scored: isHome ? homeGoals : awayGoals,
-        conceded: isHome ? awayGoals : homeGoals,
-        difference: (isHome ? homeGoals : awayGoals) - (isHome ? awayGoals : homeGoals),
-        opponent: isHome ? match.teams.away.name : match.teams.home.name,
-        venue: isHome ? 'Home' : 'Away',
+        scored: homeGoals,
+        conceded: awayGoals,
+        difference: homeGoals - awayGoals,
+        homeTeam: match.teams.home.name,
+        awayTeam: match.teams.away.name,
+        venue: 'League Match',
         date: new Date(match.fixture.date).toLocaleDateString()
       };
     });
@@ -90,15 +90,15 @@ const GoalsChart = ({ matches }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="custom-tooltip">
-          <div className="tooltip-title">{data.opponent}</div>
-          <div className="tooltip-date">{data.date}</div>
-          <div className="tooltip-match">{data.venue} Match</div>
-          <div className="tooltip-value">
+        <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+          <div className="font-semibold text-gray-900">{data.homeTeam} vs {data.awayTeam}</div>
+          <div className="text-sm text-gray-600">{data.date}</div>
+          <div className="text-sm text-gray-500">{data.venue}</div>
+          <div className="font-medium text-primary mt-1">
             {getViewTypeLabel()}: {data[viewType]}
           </div>
           {showTrendline && (
-            <div className="tooltip-trendline">
+            <div className="text-xs text-gray-500 mt-1">
               5-Match Average: {data.trendline.toFixed(1)}
             </div>
           )}
@@ -109,20 +109,20 @@ const GoalsChart = ({ matches }) => {
   };
 
   return (
-    <div className="chart-section">
+    <div className="chart-section space-y-4">
       <div className="chart-header">
-        <h2>Goals per Match</h2>
-        <div className="chart-controls">
-          <div className="control-group">
-            <label>
-              <FaEye className="control-icon" />
-              View Type:
+        <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">Goals per Match</h2>
+        <div className="chart-controls flex flex-wrap gap-4">
+          <div className="control-group flex items-center space-x-2">
+            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+              <FaEye />
+              <span>View Type:</span>
             </label>
             <div className="dropdown-container">
               <select 
                 value={viewType} 
                 onChange={(e) => setViewType(e.target.value)}
-                className="view-selector"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
               >
                 <option value="total">Total Goals</option>
                 <option value="scored">Goals Scored</option>
@@ -132,22 +132,22 @@ const GoalsChart = ({ matches }) => {
             </div>
           </div>
           
-          <div className="control-group">
+          <div className="control-group flex gap-2">
             <button 
-              className={`toggle-btn ${showAverage ? 'active' : ''}`}
+              className={`px-4 py-2 rounded-lg border-2 transition-colors flex items-center space-x-2 ${showAverage ? 'bg-primary text-white border-primary' : 'bg-gray-100 border-gray-300 text-gray-700'}`}
               onClick={() => setShowAverage(!showAverage)}
               title="Toggle Average Line"
             >
-              {showAverage ? <FaCalculator /> : <FaCalculator />}
+              <FaCalculator />
               <span>Average</span>
             </button>
             
             <button 
-              className={`toggle-btn ${showTrendline ? 'active' : ''}`}
+              className={`px-4 py-2 rounded-lg border-2 transition-colors flex items-center space-x-2 ${showTrendline ? 'bg-primary text-white border-primary' : 'bg-gray-100 border-gray-300 text-gray-700'}`}
               onClick={() => setShowTrendline(!showTrendline)}
               title="Toggle Trendline"
             >
-              {showTrendline ? <FaChartLine /> : <FaChartLine />}
+              <FaChartLine />
               <span>Trend</span>
             </button>
           </div>
@@ -156,17 +156,17 @@ const GoalsChart = ({ matches }) => {
 
       <ResponsiveContainer width="100%" height={400}>
         <LineChart data={dataWithTrendline}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis 
             dataKey="matchNumber" 
-            tick={{ fill: '#fff', fontSize: 10 }}
-            label={{ value: 'Match Number', position: 'insideBottom', offset: -15, fill: '#fff', fontSize: 14 }}
+            tick={{ fill: '#374151', fontSize: 10 }}
+            label={{ value: 'Match Number', position: 'insideBottom', offset: -15, fill: '#374151', fontSize: 14 }}
             tickMargin={10}
             interval="preserveStartEnd"
           />
           <YAxis 
-            tick={{ fill: '#fff', fontSize: 12 }}
-            label={{ value: getViewTypeLabel(), angle: -90, position: 'insideLeft', fill: '#fff', fontSize: 14 }}
+            tick={{ fill: '#374151', fontSize: 12 }}
+            label={{ value: getViewTypeLabel(), angle: -90, position: 'insideLeft', fill: '#374151', fontSize: 14 }}
             tickMargin={12}
           />
           <Tooltip content={<CustomTooltip />} />
@@ -215,13 +215,17 @@ const GoalsChart = ({ matches }) => {
       </ResponsiveContainer>
       
       {/* Peak/Valley labels */}
-      <div className="chart-insights">
+      <div className="chart-insights flex flex-wrap gap-2 mt-4">
         {peaks.filter(item => item.isPeak || item.isValley).map((item, index) => (
-          <div key={index} className={`insight-item ${item.isPeak ? 'peak' : 'valley'}`}>
+          <div key={index} className={`px-3 py-1 rounded-full text-sm font-medium ${
+            item.isPeak 
+              ? 'bg-green-100 text-green-700 border border-green-300' 
+              : 'bg-red-100 text-red-700 border border-red-300'
+          }`}>
             <span className="insight-label">
               {item.isPeak ? 'Peak' : 'Lowest'}: Match #{item.matchNumber}
             </span>
-            <span className="insight-value">{item[viewType]}</span>
+            <span className="insight-value ml-2 font-bold">{item[viewType]}</span>
           </div>
         ))}
       </div>

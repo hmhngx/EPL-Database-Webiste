@@ -4,25 +4,24 @@ import { FaTrophy, FaTimes, FaHandshake, FaEye, FaEyeSlash } from 'react-icons/f
 import '../styles/ResultsChart.css';
 
 const ResultsChart = ({ matches }) => {
-  const [showWins, setShowWins] = useState(true);
-  const [showLosses, setShowLosses] = useState(true);
+  const [showHomeWins, setShowHomeWins] = useState(true);
+  const [showAwayWins, setShowAwayWins] = useState(true);
   const [showDraws, setShowDraws] = useState(true);
   const [showStreaks, setShowStreaks] = useState(true);
 
   const chartData = useMemo(() => {
     return matches.map((match, index) => {
-    const isHome = match.teams.home.id === 33;
-    const homeGoals = match.goals.home;
-    const awayGoals = match.goals.away;
+      const homeGoals = match.goals.home;
+      const awayGoals = match.goals.away;
       
       let result, resultValue, color, icon;
-      if ((isHome && homeGoals > awayGoals) || (!isHome && awayGoals > homeGoals)) {
-        result = 'Win';
+      if (homeGoals > awayGoals) {
+        result = 'Home Win';
         resultValue = 3;
         color = '#4CAF50';
         icon = <FaTrophy />;
-      } else if ((isHome && homeGoals < awayGoals) || (!isHome && awayGoals < homeGoals)) {
-        result = 'Loss';
+      } else if (awayGoals > homeGoals) {
+        result = 'Away Win';
         resultValue = 1;
         color = '#F44336';
         icon = <FaTimes />;
@@ -40,14 +39,12 @@ const ResultsChart = ({ matches }) => {
         resultValue,
         color,
         icon,
-        isHome,
         homeTeam: match.teams.home.name,
         awayTeam: match.teams.away.name,
         homeGoals,
         awayGoals,
-        opponent: isHome ? match.teams.away.name : match.teams.home.name,
         score: `${homeGoals}-${awayGoals}`,
-        venue: isHome ? 'Home' : 'Away'
+        venue: 'League Match'
       };
     });
   }, [matches]);
@@ -60,9 +57,11 @@ const ResultsChart = ({ matches }) => {
       let currentStreak = 1;
       let streakType = item.result;
       
-      // Look backwards for streak
+      // Look backwards for streak (normalize Win types)
+      const normalizedResult = item.result.includes('Win') ? 'Win' : item.result;
       for (let i = index - 1; i >= 0; i--) {
-        if (chartData[i].result === item.result) {
+        const normalizedPrevResult = chartData[i].result.includes('Win') ? 'Win' : chartData[i].result;
+        if (normalizedPrevResult === normalizedResult) {
           currentStreak++;
         } else {
           break;
@@ -73,25 +72,32 @@ const ResultsChart = ({ matches }) => {
         ...item,
         currentStreak,
         streakType,
-        isStreakStart: index === 0 || chartData[index - 1]?.result !== item.result
+        isStreakStart: index === 0 || (() => {
+          const prevResult = chartData[index - 1]?.result || '';
+          const normalizedPrev = prevResult.includes('Win') ? 'Win' : prevResult;
+          const normalizedCurrent = item.result.includes('Win') ? 'Win' : item.result;
+          return normalizedPrev !== normalizedCurrent;
+        })()
       };
     });
   }, [chartData, showStreaks]);
 
   // Calculate statistics
   const stats = useMemo(() => {
-    const wins = chartData.filter(item => item.result === 'Win').length;
-    const losses = chartData.filter(item => item.result === 'Loss').length;
+    const homeWins = chartData.filter(item => item.result === 'Home Win').length;
+    const awayWins = chartData.filter(item => item.result === 'Away Win').length;
     const draws = chartData.filter(item => item.result === 'Draw').length;
     const total = chartData.length;
+    const totalWins = homeWins + awayWins;
 
     return {
-      wins,
-      losses,
+      homeWins,
+      awayWins,
+      totalWins,
       draws,
       total,
-      winRate: ((wins / total) * 100).toFixed(1),
-      points: wins * 3 + draws
+      winRate: total > 0 ? ((totalWins / total) * 100).toFixed(1) : '0',
+      drawRate: total > 0 ? ((draws / total) * 100).toFixed(1) : '0'
     };
   }, [chartData]);
 
@@ -105,7 +111,7 @@ const ResultsChart = ({ matches }) => {
           <p className="tooltip-match">
             {data.homeTeam} {data.homeGoals} - {data.awayGoals} {data.awayTeam}
           </p>
-          <p className="tooltip-opponent">vs {data.opponent} ({data.venue})</p>
+          <p className="tooltip-opponent">{data.venue}</p>
           <p className="tooltip-result" style={{color: data.color}}>
             {data.icon} {data.result}
           </p>
@@ -126,8 +132,8 @@ const ResultsChart = ({ matches }) => {
     
     // Determine opacity based on filter settings
     let opacity = 1;
-    if (payload.result === 'Win' && !showWins) opacity = 0.3;
-    if (payload.result === 'Loss' && !showLosses) opacity = 0.3;
+    if (payload.result === 'Home Win' && !showHomeWins) opacity = 0.3;
+    if (payload.result === 'Away Win' && !showAwayWins) opacity = 0.3;
     if (payload.result === 'Draw' && !showDraws) opacity = 0.3;
     
     return (
@@ -152,7 +158,7 @@ const ResultsChart = ({ matches }) => {
           fontWeight="bold"
           style={{ opacity }}
         >
-          {payload.result === 'Win' ? 'W' : payload.result === 'Loss' ? 'L' : 'D'}
+          {payload.result === 'Home Win' ? 'HW' : payload.result === 'Away Win' ? 'AW' : 'D'}
         </text>
       </g>
     );
@@ -164,33 +170,30 @@ const ResultsChart = ({ matches }) => {
   console.log('Chart data count:', dataWithStreaks.length);
 
   return (
-    <div className="chart-section">
+    <div className="chart-section space-y-4">
       <div className="chart-header">
-      <h2>Match Results Over Time</h2>
-        <div className="chart-controls">
-          <div className="control-group">
+        <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">Match Results Over Time</h2>
+        <div className="chart-controls flex flex-wrap gap-4">
+          <div className="control-group flex flex-wrap gap-2">
             <button 
-              className={`toggle-btn ${showWins ? 'active' : ''}`}
-              onClick={() => setShowWins(!showWins)}
-              style={{borderColor: showWins ? '#4CAF50' : undefined}}
+              className={`toggle-btn px-4 py-2 rounded-lg border-2 transition-colors flex items-center space-x-2 ${showHomeWins ? 'bg-green-100 border-green-500 text-green-700' : 'bg-gray-100 border-gray-300 text-gray-700'}`}
+              onClick={() => setShowHomeWins(!showHomeWins)}
             >
               <FaTrophy />
-              <span>Wins ({stats.wins})</span>
+              <span>Home Wins ({stats.homeWins})</span>
             </button>
             
             <button 
-              className={`toggle-btn ${showLosses ? 'active' : ''}`}
-              onClick={() => setShowLosses(!showLosses)}
-              style={{borderColor: showLosses ? '#F44336' : undefined}}
+              className={`toggle-btn px-4 py-2 rounded-lg border-2 transition-colors flex items-center space-x-2 ${showAwayWins ? 'bg-green-100 border-green-500 text-green-700' : 'bg-gray-100 border-gray-300 text-gray-700'}`}
+              onClick={() => setShowAwayWins(!showAwayWins)}
             >
-              <FaTimes />
-              <span>Losses ({stats.losses})</span>
+              <FaTrophy />
+              <span>Away Wins ({stats.awayWins})</span>
             </button>
             
             <button 
-              className={`toggle-btn ${showDraws ? 'active' : ''}`}
+              className={`toggle-btn px-4 py-2 rounded-lg border-2 transition-colors flex items-center space-x-2 ${showDraws ? 'bg-yellow-100 border-yellow-500 text-yellow-700' : 'bg-gray-100 border-gray-300 text-gray-700'}`}
               onClick={() => setShowDraws(!showDraws)}
-              style={{borderColor: showDraws ? '#FFC107' : undefined}}
             >
               <FaHandshake />
               <span>Draws ({stats.draws})</span>
@@ -199,7 +202,7 @@ const ResultsChart = ({ matches }) => {
           
           <div className="control-group">
             <button 
-              className={`toggle-btn ${showStreaks ? 'active' : ''}`}
+              className={`toggle-btn px-4 py-2 rounded-lg border-2 transition-colors flex items-center space-x-2 ${showStreaks ? 'bg-primary text-white border-primary' : 'bg-gray-100 border-gray-300 text-gray-700'}`}
               onClick={() => setShowStreaks(!showStreaks)}
               title="Toggle Streak Visualization"
             >
@@ -210,44 +213,44 @@ const ResultsChart = ({ matches }) => {
         </div>
       </div>
 
-      <div className="stats-summary">
-        <div className="stat-card">
-          <span className="stat-label">Win Rate</span>
-          <span className="stat-value">{stats.winRate}%</span>
+      <div className="stats-summary grid grid-cols-3 gap-4">
+        <div className="stat-card bg-white rounded-lg p-4 shadow border border-gray-200 text-center">
+          <span className="stat-label block text-sm text-gray-600 mb-1">Win Rate</span>
+          <span className="stat-value text-2xl font-bold text-primary">{stats.winRate}%</span>
         </div>
-        <div className="stat-card">
-          <span className="stat-label">Points</span>
-          <span className="stat-value">{stats.points}</span>
+        <div className="stat-card bg-white rounded-lg p-4 shadow border border-gray-200 text-center">
+          <span className="stat-label block text-sm text-gray-600 mb-1">Draw Rate</span>
+          <span className="stat-value text-2xl font-bold text-yellow-600">{stats.drawRate}%</span>
         </div>
-        <div className="stat-card">
-          <span className="stat-label">Total Matches</span>
-          <span className="stat-value">{stats.total}</span>
+        <div className="stat-card bg-white rounded-lg p-4 shadow border border-gray-200 text-center">
+          <span className="stat-label block text-sm text-gray-600 mb-1">Total Matches</span>
+          <span className="stat-value text-2xl font-bold text-gray-900">{stats.total}</span>
         </div>
       </div>
 
       <ResponsiveContainer width="100%" height={400}>
         <ScatterChart data={dataWithStreaks}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis 
             dataKey="matchNumber" 
             type="number"
-            tick={{ fill: '#fff', fontSize: 10 }}
-            label={{ value: 'Match Number', position: 'insideBottom', offset: -15, fill: '#fff', fontSize: 14 }}
+            tick={{ fill: '#374151', fontSize: 10 }}
+            label={{ value: 'Match Number', position: 'insideBottom', offset: -15, fill: '#374151', fontSize: 14 }}
             domain={[0, 'dataMax + 1']}
             tickMargin={8}
             interval="preserveStartEnd"
           />
           <YAxis 
             type="number"
-            tick={{ fill: '#fff', fontSize: 12 }}
+            tick={{ fill: '#374151', fontSize: 12 }}
             domain={[0.5, 3.5]}
             tickFormatter={(value) => {
-              if (value === 1) return 'Loss';
+              if (value === 1) return 'Away Win';
               if (value === 2) return 'Draw';
-              if (value === 3) return 'Win';
+              if (value === 3) return 'Home Win';
               return '';
             }}
-            label={{ value: 'Result', angle: -90, position: 'insideLeft', fill: '#fff', fontSize: 14 }}
+            label={{ value: 'Result', angle: -90, position: 'insideLeft', fill: '#374151', fontSize: 14 }}
             tickMargin={10}
           />
           <Tooltip content={<CustomTooltip />} />
@@ -262,33 +265,37 @@ const ResultsChart = ({ matches }) => {
       </ResponsiveContainer>
 
       {/* Chart Legend */}
-      <div className="chart-legend">
-        <div className="legend-item">
-          <div className={`legend-dot win ${showWins ? 'active' : 'inactive'}`}></div>
-          <span>Wins {showWins ? '(Highlighted)' : '(Dimmed)'}</span>
+      <div className="chart-legend flex flex-wrap gap-4 justify-center mt-4">
+        <div className="legend-item flex items-center space-x-2">
+          <div className={`w-4 h-4 rounded-full ${showHomeWins ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+          <span className="text-sm text-gray-700">Home Wins {showHomeWins ? '(Highlighted)' : '(Dimmed)'}</span>
         </div>
-        <div className="legend-item">
-          <div className={`legend-dot draw ${showDraws ? 'active' : 'inactive'}`}></div>
-          <span>Draws {showDraws ? '(Highlighted)' : '(Dimmed)'}</span>
+        <div className="legend-item flex items-center space-x-2">
+          <div className={`w-4 h-4 rounded-full ${showAwayWins ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+          <span className="text-sm text-gray-700">Away Wins {showAwayWins ? '(Highlighted)' : '(Dimmed)'}</span>
         </div>
-        <div className="legend-item">
-          <div className={`legend-dot loss ${showLosses ? 'active' : 'inactive'}`}></div>
-          <span>Losses {showLosses ? '(Highlighted)' : '(Dimmed)'}</span>
+        <div className="legend-item flex items-center space-x-2">
+          <div className={`w-4 h-4 rounded-full ${showDraws ? 'bg-yellow-500' : 'bg-gray-300'}`}></div>
+          <span className="text-sm text-gray-700">Draws {showDraws ? '(Highlighted)' : '(Dimmed)'}</span>
         </div>
       </div>
 
       {/* Streak visualization */}
       {showStreaks && (
-        <div className="streak-visualization">
-          <h3>Current Streaks</h3>
-          <div className="streak-container">
+        <div className="streak-visualization mt-6">
+          <h3 className="text-lg font-heading font-semibold text-gray-900 mb-3">Current Streaks</h3>
+          <div className="streak-container flex flex-wrap gap-2">
             {(() => {
               const streaks = [];
               let currentStreak = 1;
               let currentType = chartData[0]?.result;
               
               for (let i = 1; i < chartData.length; i++) {
-                if (chartData[i].result === currentType) {
+                // Normalize result types for streak calculation
+                const normalizedResult = chartData[i].result.includes('Win') ? 'Win' : chartData[i].result;
+                const normalizedCurrentType = currentType.includes('Win') ? 'Win' : currentType;
+                
+                if (normalizedResult === normalizedCurrentType) {
                   currentStreak++;
                 } else {
                   if (currentStreak > 1) {
@@ -304,9 +311,13 @@ const ResultsChart = ({ matches }) => {
               }
               
               return streaks.map((streak, index) => (
-                <div key={index} className={`streak-item ${streak.type.toLowerCase()}`}>
+                <div key={index} className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  streak.type.includes('Win') 
+                    ? 'bg-green-100 text-green-700 border border-green-300' 
+                    : 'bg-yellow-100 text-yellow-700 border border-yellow-300'
+                }`}>
                   <span className="streak-type">{streak.type}</span>
-                  <span className="streak-length">{streak.length} matches</span>
+                  <span className="streak-length ml-1">{streak.length} matches</span>
                 </div>
               ));
             })()}
