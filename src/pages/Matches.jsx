@@ -1,58 +1,21 @@
 import { useState, useEffect, useMemo } from 'react';
-import { FaSpinner, FaCalendarAlt, FaFilter } from 'react-icons/fa';
-import MatchList from '../components/MatchList';
-import Filters from '../components/Filters';
-import GoalsFilter from '../components/GoalsFilter';
-import GoalsChart from '../components/GoalsChart';
-import ResultsChart from '../components/ResultsChart';
+import { motion } from 'framer-motion';
+import { FaSpinner } from 'react-icons/fa';
 
 const Matches = () => {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [resultFilter, setResultFilter] = useState('all');
-  const [venueFilter, setVenueFilter] = useState('all');
-  const [goalsSlider, setGoalsSlider] = useState(10);
-  const [minGoals, setMinGoals] = useState('');
-  const [maxGoals, setMaxGoals] = useState('');
-  const [gameweekFilter, setGameweekFilter] = useState('all');
-  const [groupBy, setGroupBy] = useState('gameweek'); // 'gameweek' or 'month'
+  const [sortType, setSortType] = useState('date_newest');
 
   useEffect(() => {
     const fetchMatches = async () => {
       try {
         setLoading(true);
-        const url = gameweekFilter !== 'all' 
-          ? `/api/matches?gameweek=${gameweekFilter}`
-          : '/api/matches';
-        const response = await fetch(url);
+        const response = await fetch('/api/matches');
         if (!response.ok) throw new Error('Failed to fetch matches');
         const data = await response.json();
-        
-        // Transform API response to match component format
-        const transformedMatches = (data.data || []).map(match => ({
-          fixture: {
-            id: match.match_id,
-            date: match.date,
-          },
-          teams: {
-            home: {
-              id: match.home_club_id,
-              name: match.home_club,
-            },
-            away: {
-              id: match.away_club_id,
-              name: match.away_club,
-            },
-          },
-          goals: {
-            home: match.home_goals,
-            away: match.away_goals,
-          },
-        }));
-        
-        setMatches(transformedMatches);
+        setMatches(data.data || []);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -61,84 +24,202 @@ const Matches = () => {
     };
 
     fetchMatches();
-  }, [gameweekFilter]);
+  }, []);
 
-  const filteredMatches = useMemo(() => {
-    let filtered = [...matches];
-    
-    if (searchQuery) {
-      filtered = filtered.filter(match => {
-        const homeTeam = match.teams.home.name.toLowerCase();
-        const awayTeam = match.teams.away.name.toLowerCase();
-        const query = searchQuery.toLowerCase();
-        return homeTeam.includes(query) || awayTeam.includes(query);
-      });
-    }
-    
-    if (resultFilter !== 'all') {
-      filtered = filtered.filter(match => {
-        const homeGoals = match.goals.home;
-        const awayGoals = match.goals.away;
-        if (resultFilter === 'win') {
-          // For league-wide, we show all wins (either team)
-          return homeGoals > awayGoals || awayGoals > homeGoals;
-        }
-        if (resultFilter === 'loss') {
-          // This doesn't make sense for league-wide, so we'll treat it as draws
-          return false;
-        }
-        if (resultFilter === 'draw') {
-          return homeGoals === awayGoals;
-        }
-        return true;
-      });
-    }
-    
-    if (venueFilter !== 'all') {
-      // For league-wide, venue filter doesn't apply the same way
-      // We'll skip this or adapt it differently
-    }
-    
-    if (minGoals !== '') {
-      filtered = filtered.filter(match => 
-        (match.goals.home + match.goals.away) >= Number(minGoals)
-      );
-    }
-    
-    if (maxGoals !== '') {
-      filtered = filtered.filter(match => 
-        (match.goals.home + match.goals.away) <= Number(maxGoals)
-      );
-    }
-    
-    return filtered;
-  }, [searchQuery, resultFilter, venueFilter, minGoals, maxGoals, matches]);
+  // Format date as 'Sat, Aug 12'
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
 
-  const groupedMatches = useMemo(() => {
-    if (groupBy === 'gameweek') {
-      // Group by gameweek (simplified - assumes 10 matches per gameweek)
-      const groups = {};
-      filteredMatches.forEach((match, index) => {
-        const gameweek = Math.floor(index / 10) + 1;
-        if (!groups[gameweek]) groups[gameweek] = [];
-        groups[gameweek].push(match);
-      });
-      return groups;
-    } else {
-      // Group by month
-      const groups = {};
-      filteredMatches.forEach(match => {
-        const date = new Date(match.fixture.date);
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        const monthLabel = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-        if (!groups[monthKey]) {
-          groups[monthKey] = { label: monthLabel, matches: [] };
-        }
-        groups[monthKey].matches.push(match);
-      });
-      return groups;
+  // Calculate matchweek (optional - if not in API)
+  const calculateMatchweek = (index) => {
+    // Simple calculation: every 10 matches = 1 gameweek
+    return Math.floor(index / 10) + 1;
+  };
+
+  // Helper function to parse attendance as integer (moved outside useMemo for stability)
+  const parseAttendance = (attendance) => {
+    if (attendance == null || attendance === '') {
+      return 0;
     }
-  }, [filteredMatches, groupBy]);
+    if (typeof attendance === 'number') {
+      return attendance;
+    }
+    // Parse string, removing any non-numeric characters (commas, spaces, etc.)
+    const cleaned = String(attendance).replace(/[^0-9]/g, '');
+    return cleaned ? parseInt(cleaned, 10) : 0;
+  };
+
+  // Helper function to calculate total goals (moved outside useMemo for stability)
+  const getTotalGoals = (match) => {
+    const homeGoals = parseInt(match.home_team_score || 0, 10);
+    const awayGoals = parseInt(match.away_team_score || 0, 10);
+    return homeGoals + awayGoals;
+  };
+
+  // Sort matches based on sortType - memoized for performance
+  const sortedMatches = useMemo(() => {
+    if (!matches || matches.length === 0) {
+      return [];
+    }
+
+    // Create a copy to avoid mutating the original array
+    const matchesCopy = Array.isArray(matches) ? [...matches] : [];
+    
+    if (matchesCopy.length === 0) {
+      return [];
+    }
+
+    try {
+      const sorted = [...matchesCopy].sort((a, b) => {
+        let comparison = 0;
+
+        switch (sortType) {
+          case 'date_newest': {
+            // Date Descending (newest first)
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+              return 0; // Invalid dates, maintain order
+            }
+            comparison = dateB.getTime() - dateA.getTime();
+            break;
+          }
+          
+          case 'date_oldest': {
+            // Date Ascending (oldest first)
+            const dateAOld = new Date(a.date);
+            const dateBOld = new Date(b.date);
+            if (isNaN(dateAOld.getTime()) || isNaN(dateBOld.getTime())) {
+              return 0; // Invalid dates, maintain order
+            }
+            comparison = dateAOld.getTime() - dateBOld.getTime();
+            break;
+          }
+          
+          case 'goals_high': {
+            // Total Goals Descending (highest first)
+            const goalsA = getTotalGoals(a);
+            const goalsB = getTotalGoals(b);
+            comparison = goalsB - goalsA;
+            // If goals are equal, sort by date (newest first)
+            if (comparison === 0) {
+              const dateA = new Date(a.date);
+              const dateB = new Date(b.date);
+              if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+                comparison = dateB.getTime() - dateA.getTime();
+              }
+            }
+            break;
+          }
+          
+          case 'goals_low': {
+            // Total Goals Ascending (lowest first)
+            const goalsALow = getTotalGoals(a);
+            const goalsBLow = getTotalGoals(b);
+            comparison = goalsALow - goalsBLow;
+            // If goals are equal, sort by date (newest first)
+            if (comparison === 0) {
+              const dateA = new Date(a.date);
+              const dateB = new Date(b.date);
+              if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+                comparison = dateB.getTime() - dateA.getTime();
+              }
+            }
+            break;
+          }
+          
+          case 'attendance_high': {
+            // Attendance Descending (highest first)
+            const attendanceA = parseAttendance(a.attendance);
+            const attendanceB = parseAttendance(b.attendance);
+            comparison = attendanceB - attendanceA;
+            // If attendance is equal, sort by date (newest first)
+            if (comparison === 0) {
+              const dateA = new Date(a.date);
+              const dateB = new Date(b.date);
+              if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+                comparison = dateB.getTime() - dateA.getTime();
+              }
+            }
+            break;
+          }
+          
+          case 'attendance_low': {
+            // Attendance Ascending (lowest first)
+            const attendanceALow = parseAttendance(a.attendance);
+            const attendanceBLow = parseAttendance(b.attendance);
+            comparison = attendanceALow - attendanceBLow;
+            // If attendance is equal, sort by date (newest first)
+            if (comparison === 0) {
+              const dateA = new Date(a.date);
+              const dateB = new Date(b.date);
+              if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+                comparison = dateB.getTime() - dateA.getTime();
+              }
+            }
+            break;
+          }
+          
+          default: {
+            // Default to date_newest
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+              comparison = dateB.getTime() - dateA.getTime();
+            }
+          }
+        }
+
+        return comparison;
+      });
+      
+      return sorted;
+    } catch (error) {
+      console.error('Error sorting matches:', error);
+      console.error('Sort type:', sortType);
+      console.error('Error details:', error.message, error.stack);
+      // Return a copy of the original array if sorting fails
+      return Array.isArray(matches) ? [...matches] : [];
+    }
+  }, [matches, sortType]);
+
+  // Track if this is the initial load to only animate on first render
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  useEffect(() => {
+    // After initial load, disable heavy animations for better performance
+    if (isInitialLoad && !loading && matches.length > 0) {
+      const timer = setTimeout(() => {
+        setIsInitialLoad(false);
+      }, 600); // Allow initial animation to complete
+      return () => clearTimeout(timer);
+    }
+  }, [loading, matches.length, isInitialLoad]);
+
+  // Disable animations immediately when sort changes for instant updates
+  useEffect(() => {
+    if (!isInitialLoad) {
+      setIsInitialLoad(false);
+    }
+  }, [sortType, isInitialLoad]);
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 5 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.1,
+        ease: 'easeOut',
+      },
+    },
+  };
 
   if (loading) {
     return (
@@ -160,107 +241,156 @@ const Matches = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-heading font-bold text-gray-900 mb-2">
+        <h1 className="text-3xl font-heading font-bold text-gray-900 dark:text-white mb-2">
           Premier League Matches
         </h1>
-        <p className="text-gray-600">Browse and filter all league matches</p>
+        <p className="text-gray-600 dark:text-gray-400">Scores and fixtures</p>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-lg p-6 space-y-4">
-        <div className="flex items-center space-x-2 mb-4">
-          <FaFilter className="text-primary" />
-          <h2 className="text-xl font-heading font-semibold">Filters</h2>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Gameweek
-            </label>
-            <select
-              value={gameweekFilter}
-              onChange={(e) => setGameweekFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-            >
-              <option value="all">All Gameweeks</option>
-              {Array.from({ length: 38 }, (_, i) => i + 1).map(gw => (
-                <option key={gw} value={gw}>Gameweek {gw}</option>
-              ))}
-            </select>
-          </div>
+      {/* Sort By Dropdown */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <label 
+          htmlFor="sort-select" 
+          className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"
+        >
+          Sort By:
+        </label>
+        <select
+          id="sort-select"
+          value={sortType}
+          onChange={(e) => {
+            const newSortType = e.target.value;
+            setSortType(newSortType);
+          }}
+          aria-label="Sort matches"
+          className="
+            bg-white dark:bg-neutral-800 
+            border border-gray-200 dark:border-neutral-700 
+            rounded-md 
+            px-4 py-2 
+            text-primary dark:text-white
+            font-medium
+            focus:outline-none 
+            focus:ring-2 
+            focus:ring-accent 
+            focus:border-accent
+            transition-all duration-200
+            cursor-pointer
+            hover:border-primary dark:hover:border-accent
+            min-w-[200px]
+          "
+        >
+          <option value="date_newest">Date (Newest First)</option>
+          <option value="date_oldest">Date (Oldest First)</option>
+          <option value="goals_high">Total Goals (High to Low)</option>
+          <option value="goals_low">Total Goals (Low to High)</option>
+          <option value="attendance_high">Attendance (High to Low)</option>
+          <option value="attendance_low">Attendance (Low to High)</option>
+        </select>
+      </div>
+
+      {/* Matches Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {sortedMatches.map((match, index) => {
+          const matchweek = match.matchweek || match.gameweek_num || calculateMatchweek(index);
+          const hasScore = match.home_team_score !== null && match.away_team_score !== null;
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Group By
-            </label>
-            <select
-              value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+          return (
+            <motion.div
+              key={match.match_id || `match-${match.date}-${index}`}
+              variants={isInitialLoad ? cardVariants : undefined}
+              initial={isInitialLoad ? "hidden" : false}
+              animate={isInitialLoad ? "visible" : false}
+              layout
+              transition={{ 
+                layout: { duration: 0.1, ease: "easeOut" },
+                opacity: { duration: 0 },
+                y: { duration: 0 }
+              }}
+              className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6 relative hover:shadow-xl transition-shadow duration-300"
             >
-              <option value="gameweek">Gameweek</option>
-              <option value="month">Month</option>
-            </select>
-          </div>
-        </div>
+              {/* Matchweek Badge */}
+              {matchweek && (
+                <div className="absolute top-4 right-4">
+                  <span className="bg-gray-100 dark:bg-neutral-700 text-gray-700 dark:text-gray-300 text-xs font-semibold px-2 py-1 rounded">
+                    GW {matchweek}
+                  </span>
+                </div>
+              )}
 
-        <Filters
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          resultFilter={resultFilter}
-          setResultFilter={setResultFilter}
-          venueFilter={venueFilter}
-          setVenueFilter={setVenueFilter}
-        />
-        
-        <GoalsFilter
-          goalsSlider={goalsSlider}
-          setGoalsSlider={setGoalsSlider}
-          minGoals={minGoals}
-          setMinGoals={setMinGoals}
-          maxGoals={maxGoals}
-          setMaxGoals={setMaxGoals}
-        />
-      </div>
+              {/* Date Row */}
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                {formatDate(match.date)}
+              </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <GoalsChart matches={filteredMatches} />
-        </div>
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <ResultsChart matches={filteredMatches} />
-        </div>
-      </div>
+              {/* Teams and Score Row */}
+              <div className="flex items-center justify-between">
+                {/* Home Team */}
+                <div className="flex-1 text-left">
+                  <p className="text-base font-medium text-gray-900 dark:text-white">
+                    {match.home_team || match.home_team_name}
+                  </p>
+                </div>
 
-      {/* Match List */}
-      <div className="space-y-6">
-        {Object.entries(groupedMatches).map(([key, group]) => (
-          <div key={key} className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4 flex items-center space-x-2">
-              <FaCalendarAlt className="text-primary" />
-              <span>
-                {groupBy === 'gameweek' 
-                  ? `Gameweek ${key}`
-                  : group.label || key
+                {/* Score */}
+                <div className="flex-shrink-0 mx-4">
+                  {hasScore ? (
+                    <div className="text-2xl font-bold" style={{ color: '#00FF85' }}>
+                      {match.home_team_score} - {match.away_team_score}
+                    </div>
+                  ) : (
+                    <div className="text-lg font-semibold text-gray-400 dark:text-gray-500">
+                      vs
+                    </div>
+                  )}
+                </div>
+
+                {/* Away Team */}
+                <div className="flex-1 text-right">
+                  <p className="text-base font-medium text-gray-900 dark:text-white">
+                    {match.away_team || match.away_team_name}
+                  </p>
+                </div>
+              </div>
+
+              {/* Attendance Row */}
+              {match.attendance != null && match.attendance !== '' && (() => {
+                // Handle attendance - ensure it's a number and format properly
+                let attendanceNum;
+                if (typeof match.attendance === 'number') {
+                  attendanceNum = match.attendance;
+                } else {
+                  // Parse string, removing any non-numeric characters (commas, spaces, etc.)
+                  const cleaned = String(match.attendance).replace(/[^0-9]/g, '');
+                  attendanceNum = cleaned ? parseInt(cleaned, 10) : 0;
                 }
-              </span>
-              <span className="text-sm font-normal text-gray-500">
-                ({groupBy === 'gameweek' ? group.length : group.matches?.length || 0} matches)
-              </span>
-            </h2>
-            <MatchList 
-              matches={groupBy === 'gameweek' ? group : group.matches || []} 
-            />
-          </div>
-        ))}
+                
+                return attendanceNum > 0 ? (
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-neutral-700">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      <span className="font-semibold">Attendance:</span>{' '}
+                      <span className="text-gray-900 dark:text-white">
+                        {attendanceNum.toLocaleString('en-US')}
+                      </span>
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+            </motion.div>
+          );
+        })}
       </div>
 
-      {filteredMatches.length === 0 && (
-        <div className="bg-gray-100 rounded-xl p-8 text-center">
-          <p className="text-gray-600 text-lg">No matches found matching your filters.</p>
-        </div>
+      {sortedMatches.length === 0 && !loading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-gray-100 dark:bg-neutral-800 rounded-xl p-8 text-center"
+        >
+          <p className="text-gray-600 dark:text-gray-400 text-lg">
+            No matches found.
+          </p>
+        </motion.div>
       )}
     </div>
   );

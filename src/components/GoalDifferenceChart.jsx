@@ -21,17 +21,30 @@ ChartJS.register(
 
 const GoalDifferenceChart = ({ standings }) => {
   const chartData = useMemo(() => {
-    if (!standings || standings.length === 0) return null;
+    if (!standings || standings.length === 0) {
+      return null;
+    }
 
-    const sortedByGD = [...standings].sort((a, b) => b.gd - a.gd);
+    // Sort by goal difference (descending)
+    const sortedByGD = [...standings].sort((a, b) => {
+      const gdA = parseInt(a.gd || 0, 10);
+      const gdB = parseInt(b.gd || 0, 10);
+      return gdB - gdA;
+    });
+    
     const top10 = sortedByGD.slice(0, 10);
 
+    if (top10.length === 0) {
+      console.log('GoalDifferenceChart: No teams to display');
+      return null;
+    }
+
     return {
-      labels: top10.map(team => team.club),
+      labels: top10.map(team => team.team_name || team.club || 'Unknown Team'),
       datasets: [
         {
           label: 'Goal Difference',
-          data: top10.map(team => team.gd),
+          data: top10.map(team => parseInt(team.gd || 0, 10)),
           backgroundColor: top10.map((team, index) => {
             if (index < 4) return '#00FF85'; // Top 4 - green
             return '#04f5ff'; // Others - blue
@@ -98,7 +111,21 @@ const GoalDifferenceChart = ({ standings }) => {
   if (!chartData) {
     return (
       <div className="text-center text-gray-500 py-8">
-        No data available for chart
+        <p>No data available for chart</p>
+        <p className="text-sm mt-2">
+          {standings && standings.length > 0 
+            ? `Received ${standings.length} teams but couldn't process data`
+            : 'No standings data provided'}
+        </p>
+      </div>
+    );
+  }
+
+  if (!chartData.labels || chartData.labels.length === 0) {
+    return (
+      <div className="text-center text-gray-500 py-8">
+        <p>No teams to display</p>
+        <p className="text-sm mt-2">Check that standings data contains team names and goal differences</p>
       </div>
     );
   }

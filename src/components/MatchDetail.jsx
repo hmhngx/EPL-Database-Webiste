@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, Link } from 'react-router-dom';
-import Sidebar from './Sidebar';
-import { FaFutbol, FaVideo, FaTrophy, FaTimes, FaHandshake } from 'react-icons/fa';
-import { highlightVideos } from '../data/highlightVideos'; 
-import '../styles/MatchDetail.css';
+import { FaFutbol, FaVideo, FaTrophy, FaTimes, FaHandshake, FaSpinner, FaArrowLeft, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { highlightVideos } from '../data/highlightVideos';
 
 const MatchDetail = () => {
   const { id } = useParams();
@@ -12,6 +11,12 @@ const MatchDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [highlightLink, setHighlightLink] = useState(null);
+  const [expandedSections, setExpandedSections] = useState({
+    stats: true,
+    goals: true,
+    highlights: true,
+  });
+  const [hoveredElement, setHoveredElement] = useState(null);
 
   useEffect(() => {
     const fetchMatchDetails = async () => {
@@ -19,7 +24,6 @@ const MatchDetail = () => {
         setLoading(true);
         setError(null);
         
-        // Use internal API instead of api-sports.io
         const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
         const matchResponse = await fetch(`${apiBaseUrl}/api/matches/${id}`);
 
@@ -33,7 +37,6 @@ const MatchDetail = () => {
         const matchData = await matchResponse.json();
         
         if (matchData.success && matchData.data) {
-          // Transform API response to match component format
           const transformedMatch = {
             fixture: {
               id: matchData.data.match_id,
@@ -44,7 +47,7 @@ const MatchDetail = () => {
               },
               referee: matchData.data.referee || 'Not available',
               status: {
-                long: 'Finished', // Assuming all matches in DB are finished
+                long: 'Finished',
               },
             },
             teams: {
@@ -65,7 +68,6 @@ const MatchDetail = () => {
           
           setMatch(transformedMatch);
 
-          // Set highlight link
           if (highlightVideos[id]) {
             setHighlightLink(highlightVideos[id]);
           } else {
@@ -75,8 +77,6 @@ const MatchDetail = () => {
             setHighlightLink(youtubeSearchUrl);
           }
           
-          // Note: Events (goals, cards, etc.) are not available in current DB schema
-          // This would need to be added to the database or fetched from another source
           setEvents([]);
         } else {
           throw new Error('Invalid API response structure');
@@ -94,12 +94,36 @@ const MatchDetail = () => {
 
   const goals = events.filter(event => event.type === 'Goal' && event.detail !== 'Missed Penalty');
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.1,
+      },
+    },
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, scale: 0.9, y: 20 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+        ease: 'easeOut',
+      },
+    },
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading match details...</p>
+          <FaSpinner className="animate-spin text-4xl text-primary mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">Loading match details...</p>
         </div>
       </div>
     );
@@ -107,33 +131,23 @@ const MatchDetail = () => {
 
   if (error) {
     return (
-      <div className="app-container">
-        <Sidebar />
-        <div className="main-content">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
-            <p className="font-semibold">Error:</p>
-            <p>{error}</p>
-          </div>
-          <Link to="/matches" className="text-primary hover:text-accent mt-4 inline-block">
-            ← Back to Matches
-          </Link>
-        </div>
+      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+        <p className="font-semibold">Error:</p>
+        <p>{error}</p>
+        <Link to="/matches" className="text-primary hover:text-accent mt-4 inline-block">
+          ← Back to Matches
+        </Link>
       </div>
     );
   }
 
   if (!match) {
     return (
-      <div className="app-container">
-        <Sidebar />
-        <div className="main-content">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
-            <p className="font-semibold">Match not found</p>
-          </div>
-          <Link to="/matches" className="text-primary hover:text-accent mt-4 inline-block">
-            ← Back to Matches
-          </Link>
-        </div>
+      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+        <p className="font-semibold">Match not found</p>
+        <Link to="/matches" className="text-primary hover:text-accent mt-4 inline-block">
+          ← Back to Matches
+        </Link>
       </div>
     );
   }
@@ -144,118 +158,244 @@ const MatchDetail = () => {
   const venueCity = match.fixture.venue.city;
   const referee = match.fixture.referee || 'Not available';
 
-  // Calculate match result for form display
   const homeGoals = match.goals.home;
   const awayGoals = match.goals.away;
-  let resultType, resultIcon, resultClass;
+  let resultType, resultIcon, resultClass, resultColor;
   
   if (homeGoals > awayGoals) {
     resultType = 'W';
-    resultIcon = <FaTrophy />;
+    resultIcon = FaTrophy;
     resultClass = 'win';
+    resultColor = 'text-green-600 dark:text-green-400';
   } else if (homeGoals < awayGoals) {
     resultType = 'L';
-    resultIcon = <FaTimes />;
+    resultIcon = FaTimes;
     resultClass = 'loss';
+    resultColor = 'text-red-600 dark:text-red-400';
   } else {
     resultType = 'D';
-    resultIcon = <FaHandshake />;
+    resultIcon = FaHandshake;
     resultClass = 'draw';
+    resultColor = 'text-yellow-600 dark:text-yellow-400';
   }
 
+  const ResultIcon = resultIcon;
   const isEmbedLink = highlightLink && highlightLink.includes('youtube.com/embed');
 
   return (
-    <div className="app-container">
-      <Sidebar />
-      <div className="main-content">
-        <div className="match-detail">
-          <h1>Match Details</h1>
-          
-          {/* Result Form Display */}
-          <div className="result-form">
-            <div className={`result-indicator ${resultClass}`}>
-              <div className="result-icon">
-                {resultIcon}
-              </div>
-              <div className="result-letter">
-                {resultType}
-              </div>
-              <div className="result-label">
-                {resultType === 'W' ? 'WIN' : resultType === 'L' ? 'LOSS' : resultType === 'D' ? 'DRAW' : 'TBD'}
-              </div>
-            </div>
-          </div>
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-8"
+    >
+      {/* Back Button */}
+      <Link
+        to="/matches"
+        className="inline-flex items-center space-x-2 text-primary hover:text-accent transition-colors"
+        aria-label="Back to matches"
+      >
+        <FaArrowLeft />
+        <span>Back to Matches</span>
+      </Link>
 
-          <div className="match-info">
-            <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">
+      {/* Main Match Card */}
+      <motion.div
+        variants={cardVariants}
+        className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg hover:shadow-[0_0_30px_rgba(0,255,133,0.3)] transition-all duration-300 overflow-hidden"
+      >
+        <div className="p-8">
+          {/* Match Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-heading font-bold text-gray-900 dark:text-white mb-6">
               {match.teams.home.name} vs {match.teams.away.name}
-            </h2>
-            <div className="space-y-2 text-gray-700">
-              <p><strong>Result:</strong> {result}</p>
-              <p><strong>Date:</strong> {matchDate}</p>
-              <p><strong>Venue:</strong> {venueName}, {venueCity}</p>
-              <p><strong>Referee:</strong> {referee}</p>
-              <p><strong>Status:</strong> {match.fixture.status.long}</p>
-            </div>
-          </div>
-
-          {/* Goal Scorers Section */}
-          <div className="goal-scorers">
-            <h3>
-              <FaFutbol className="section-icon" /> Goal Scorers
-            </h3>
-            {goals.length > 0 ? (
-              <ul>
-                {goals.map((goal, index) => (
-                  <li key={index}>
-                    {goal.player.name} ({goal.team.name}) - {goal.time.elapsed}'
-                    {goal.time.extra && `+${goal.time.extra}'`}
-                    {goal.detail === 'Own Goal' && ' (Own Goal)'}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No goals scored in this match.</p>
-            )}
-          </div>
-
-          {/* YouTube Highlights Section */}
-          <div className="highlights">
-            <h3>
-              <FaVideo className="section-icon" /> Match Highlights
-            </h3>
-            {highlightLink ? (
-              isEmbedLink ? (
-                <div className="video-container">
-                  <iframe
-                    width="100%"
-                    height="315"
-                    src={highlightLink}
-                    title="Match Highlights"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  ></iframe>
+            </h1>
+            
+            {/* Result Display */}
+            <motion.div
+              className={`
+                inline-flex items-center justify-center space-x-4 p-6 rounded-xl
+                ${resultClass === 'win' ? 'bg-green-50 dark:bg-green-900/30' : ''}
+                ${resultClass === 'loss' ? 'bg-red-50 dark:bg-red-900/30' : ''}
+                ${resultClass === 'draw' ? 'bg-yellow-50 dark:bg-yellow-900/30' : ''}
+                border-2 ${resultClass === 'win' ? 'border-green-500' : resultClass === 'loss' ? 'border-red-500' : 'border-yellow-500'}
+              `}
+              whileHover={{ scale: 1.05 }}
+              animate={{
+                boxShadow: hoveredElement === 'result' 
+                  ? '0 0 20px rgba(0, 255, 133, 0.5)' 
+                  : '0 0 0px rgba(0, 255, 133, 0)'
+              }}
+              onMouseEnter={() => setHoveredElement('result')}
+              onMouseLeave={() => setHoveredElement(null)}
+            >
+              <motion.div
+                animate={{
+                  scale: hoveredElement === 'result' ? [1, 1.2, 1] : 1,
+                }}
+                transition={{ duration: 2, repeat: hoveredElement === 'result' ? Infinity : 0 }}
+              >
+                <ResultIcon className={`text-4xl ${resultColor}`} />
+              </motion.div>
+              <div>
+                <div className="text-5xl font-heading font-bold text-gray-900 dark:text-white">
+                  {result}
                 </div>
-              ) : (
-                <p>
-                  <a href={highlightLink} target="_blank" rel="noopener noreferrer" className="highlight-link">
-                    Watch highlights on YouTube
-                  </a>
-                </p>
-              )
-            ) : (
-              <p>Highlight video not available.</p>
-            )}
+                <div className={`text-sm font-semibold uppercase ${resultColor}`}>
+                  {resultType === 'W' ? 'WIN' : resultType === 'L' ? 'LOSS' : 'DRAW'}
+                </div>
+              </div>
+            </motion.div>
           </div>
 
-          <Link to="/matches" className="inline-block mt-6 px-4 py-2 bg-primary text-white rounded-lg hover:bg-accent hover:text-primary transition-colors">
-            ← Back to Matches
-          </Link>
+          {/* Match Info Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <motion.div
+              className="p-4 bg-gray-50 dark:bg-neutral-700 rounded-lg"
+              whileHover={{ scale: 1.02, x: 4 }}
+            >
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Date & Time</p>
+              <p className="font-semibold text-gray-900 dark:text-white">{matchDate}</p>
+            </motion.div>
+            <motion.div
+              className="p-4 bg-gray-50 dark:bg-neutral-700 rounded-lg"
+              whileHover={{ scale: 1.02, x: 4 }}
+            >
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Venue</p>
+              <p className="font-semibold text-gray-900 dark:text-white">{venueName}, {venueCity}</p>
+            </motion.div>
+            <motion.div
+              className="p-4 bg-gray-50 dark:bg-neutral-700 rounded-lg"
+              whileHover={{ scale: 1.02, x: 4 }}
+            >
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Referee</p>
+              <p className="font-semibold text-gray-900 dark:text-white">{referee}</p>
+            </motion.div>
+            <motion.div
+              className="p-4 bg-gray-50 dark:bg-neutral-700 rounded-lg"
+              whileHover={{ scale: 1.02, x: 4 }}
+            >
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Status</p>
+              <p className="font-semibold text-gray-900 dark:text-white">{match.fixture.status.long}</p>
+            </motion.div>
+          </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+
+      {/* Goal Scorers Section */}
+      {expandedSections.goals && (
+        <motion.div
+          variants={cardVariants}
+          className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6"
+        >
+          <div
+            className="flex items-center justify-between cursor-pointer mb-4"
+            onClick={() => setExpandedSections({ ...expandedSections, goals: !expandedSections.goals })}
+          >
+            <h3 className="text-2xl font-heading font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <FaFutbol className="text-primary" />
+              Goal Scorers
+            </h3>
+            <motion.div
+              animate={{ rotate: expandedSections.goals ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <FaChevronDown className="text-gray-400" />
+            </motion.div>
+          </div>
+          <AnimatePresence>
+            {expandedSections.goals && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {goals.length > 0 ? (
+                  <ul className="space-y-2">
+                    {goals.map((goal, index) => (
+                      <motion.li
+                        key={index}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="p-3 bg-gray-50 dark:bg-neutral-700 rounded-lg"
+                      >
+                        {goal.player.name} ({goal.team.name}) - {goal.time.elapsed}'
+                        {goal.time.extra && `+${goal.time.extra}'`}
+                        {goal.detail === 'Own Goal' && ' (Own Goal)'}
+                      </motion.li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 dark:text-gray-400">No goals scored in this match.</p>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
+
+      {/* Highlights Section */}
+      {expandedSections.highlights && highlightLink && (
+        <motion.div
+          variants={cardVariants}
+          className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6"
+        >
+          <div
+            className="flex items-center justify-between cursor-pointer mb-4"
+            onClick={() => setExpandedSections({ ...expandedSections, highlights: !expandedSections.highlights })}
+          >
+            <h3 className="text-2xl font-heading font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <FaVideo className="text-primary" />
+              Match Highlights
+            </h3>
+            <motion.div
+              animate={{ rotate: expandedSections.highlights ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <FaChevronDown className="text-gray-400" />
+            </motion.div>
+          </div>
+          <AnimatePresence>
+            {expandedSections.highlights && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {isEmbedLink ? (
+                  <div className="video-container rounded-lg overflow-hidden">
+                    <iframe
+                      width="100%"
+                      height="315"
+                      src={highlightLink}
+                      title="Match Highlights"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="rounded-lg"
+                    ></iframe>
+                  </div>
+                ) : (
+                  <p className="text-center py-4">
+                    <a
+                      href={highlightLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:text-accent underline font-semibold"
+                    >
+                      Watch highlights on YouTube
+                    </a>
+                  </p>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
+    </motion.div>
   );
 };
 

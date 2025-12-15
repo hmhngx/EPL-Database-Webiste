@@ -1,84 +1,380 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import { useParams, Link } from 'react-router-dom';
-import { FaSpinner, FaBuilding, FaCalendarAlt, FaUsers, FaMapMarkerAlt, FaTrophy, FaArrowLeft } from 'react-icons/fa';
-import MatchList from '../components/MatchList';
-import ClubStats from '../components/ClubStats';
-import GoalsChart from '../components/GoalsChart';
-import ResultsChart from '../components/ResultsChart';
+import { FaSpinner, FaArrowLeft, FaTrophy, FaChartLine, FaUsers, FaHome, FaCalendarAlt, FaSearch, FaFilter, FaSort, FaSortUp, FaSortDown, FaCrown } from 'react-icons/fa';
+import { Doughnut, Bar } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement
+} from 'chart.js';
+
+// Register Chart.js components
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
+
+// Team Themes Mapping - Official Premier League Team Colors
+const TEAM_THEMES = {
+  'Arsenal': '#EF0107',
+  'Aston Villa': '#95BFE5',
+  'Bournemouth': '#DA020E',
+  'Brentford': '#E30613',
+  'Brighton & Hove Albion': '#0057B8',
+  'Burnley': '#6C1D45',
+  'Chelsea': '#034694',
+  'Crystal Palace': '#1B458F',
+  'Everton': '#003399',
+  'Fulham': '#000000',
+  'Liverpool': '#C8102E',
+  'Luton Town': '#FF8C00',
+  'Manchester City': '#6CABDD',
+  'Manchester United': '#DA020E',
+  'Newcastle United': '#241F20',
+  'Nottingham Forest': '#DD0000',
+  'Sheffield United': '#EE2737',
+  'Tottenham Hotspur': '#132257',
+  'West Ham United': '#7A263A',
+  'Wolverhampton Wanderers': '#FDB913',
+  // Fallback for any team not listed
+  'default': '#38003C' // EPL Purple
+};
 
 const ClubDetail = () => {
   const { id } = useParams();
-  const [club, setClub] = useState(null);
-  const [squad, setSquad] = useState([]);
+  const [team, setTeam] = useState(null);
   const [matches, setMatches] = useState([]);
+  const [standings, setStandings] = useState([]);
+  const [squad, setSquad] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showGoalsChart, setShowGoalsChart] = useState(true);
-  const [showResultsChart, setShowResultsChart] = useState(true);
+  const [positionFilter, setPositionFilter] = useState('all');
+  const [searchName, setSearchName] = useState('');
+  const [searchNationality, setSearchNationality] = useState('');
+  const [captainFilter, setCaptainFilter] = useState(false);
+  const [sortConfig, setSortConfig] = useState({ key: 'player_name', direction: 'asc' });
 
+  // Get team color
+  const teamColor = useMemo(() => {
+    if (!team) return TEAM_THEMES.default;
+    return TEAM_THEMES[team.team_name] || TEAM_THEMES.default;
+  }, [team]);
+
+  // Fetch all data
   useEffect(() => {
-    const fetchClubData = async () => {
+    let isMounted = true;
+
+    const fetchAllData = async () => {
       try {
         setLoading(true);
-        
-        // Fetch club details
-        const clubResponse = await fetch(`/api/clubs/${id}`);
-        if (!clubResponse.ok) throw new Error('Failed to fetch club details');
-        const clubData = await clubResponse.json();
-        setClub(clubData.data);
+        setError(null);
+
+        // Fetch team metadata
+        const teamResponse = await fetch(`/api/clubs/${id}`);
+        if (!teamResponse.ok) throw new Error('Failed to fetch team details');
+        const teamData = await teamResponse.json();
+        if (isMounted) setTeam(teamData.data);
 
         // Fetch squad
         const squadResponse = await fetch(`/api/clubs/${id}/squad`);
         if (squadResponse.ok) {
           const squadData = await squadResponse.json();
-          setSquad(squadData.data || []);
+          if (isMounted) setSquad(squadData.data || []);
         }
 
-        // Fetch club matches
+        // Fetch all matches
         const matchesResponse = await fetch('/api/matches');
-        if (matchesResponse.ok) {
-          const matchesData = await matchesResponse.json();
-          // Filter matches for this club
-          const clubMatches = (matchesData.data || []).filter(match => 
-            match.home_club_id === id || match.away_club_id === id
-          );
-          
-          // Transform to MatchList format
-          const transformedMatches = clubMatches.map(match => ({
-            fixture: {
-              id: match.match_id,
-              date: match.date,
-            },
-            teams: {
-              home: {
-                id: match.home_club_id,
-                name: match.home_club,
-              },
-              away: {
-                id: match.away_club_id,
-                name: match.away_club,
-              },
-            },
-            goals: {
-              home: match.home_goals,
-              away: match.away_goals,
-            },
-          }));
-          
-          setMatches(transformedMatches);
+        if (!matchesResponse.ok) throw new Error('Failed to fetch matches');
+        const matchesData = await matchesResponse.json();
+        
+        // Filter matches for this team
+        const teamMatches = (matchesData.data || []).filter(match => 
+          String(match.home_team_id) === String(id) || String(match.away_team_id) === String(id)
+        );
+        if (isMounted) {
+          setMatches(teamMatches);
+          console.log(`✅ Found ${teamMatches.length} matches for team ${id}`);
         }
+
+        // Fetch standings
+        const standingsResponse = await fetch('/api/standings');
+        if (!standingsResponse.ok) throw new Error('Failed to fetch standings');
+        const standingsData = await standingsResponse.json();
+        if (isMounted) setStandings(standingsData.data || []);
+
       } catch (err) {
+        // Only set error if component is still mounted and it's a real error
+        if (isMounted && err instanceof Error) {
         setError(err.message);
+        }
       } finally {
+        if (isMounted) {
         setLoading(false);
+        }
       }
     };
 
     if (id) {
-      fetchClubData();
+      fetchAllData();
     }
+
+    // Cleanup function to prevent state updates on unmounted component
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
 
+  // Generate logo URL for team
+  const getLogoUrl = (teamName) => {
+    if (!teamName) return '';
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(teamName)}&background=${teamColor.replace('#', '')}&color=fff&size=256`;
+  };
+
+  // Helper function to parse attendance as integer
+  const parseAttendance = (attendance) => {
+    if (attendance == null || attendance === '' || attendance === undefined) {
+      return null;
+    }
+    if (typeof attendance === 'number') {
+      return isNaN(attendance) ? null : attendance;
+    }
+    // Parse string, removing any non-numeric characters (commas, spaces, etc.)
+    const cleaned = String(attendance).replace(/[^0-9]/g, '');
+    return cleaned ? parseInt(cleaned, 10) : null;
+  };
+
+  // Calculate statistics from matches
+  const stats = useMemo(() => {
+    if (!matches || matches.length === 0) return null;
+
+    const teamMatches = matches.map(match => {
+      const isHome = String(match.home_team_id) === String(id);
+      const teamScore = isHome ? match.home_team_score : match.away_team_score;
+      const opponentScore = isHome ? match.away_team_score : match.home_team_score;
+      const opponent = isHome ? match.away_team : match.home_team;
+      const date = new Date(match.date);
+
+      let result = 'D';
+      if (teamScore > opponentScore) result = 'W';
+      else if (teamScore < opponentScore) result = 'L';
+
+      return {
+        ...match,
+        isHome,
+        teamScore,
+        opponentScore,
+        opponent,
+        result,
+        goalDifference: teamScore - opponentScore,
+        totalGoals: teamScore + opponentScore,
+        date
+      };
+    });
+
+    // Sort by date (most recent first for form guide)
+    teamMatches.sort((a, b) => b.date - a.date);
+
+    // Calculate stats
+    const totalGoalsFor = teamMatches.reduce((sum, m) => sum + m.teamScore, 0);
+    const totalGoalsAgainst = teamMatches.reduce((sum, m) => sum + m.opponentScore, 0);
+    
+    const wins = teamMatches.filter(m => m.result === 'W');
+    const losses = teamMatches.filter(m => m.result === 'L');
+    const draws = teamMatches.filter(m => m.result === 'D');
+
+    // Biggest win
+    const biggestWin = wins.length > 0 
+      ? wins.reduce((max, m) => m.goalDifference > max.goalDifference ? m : max, wins[0])
+      : null;
+
+    // Heaviest defeat
+    const heaviestDefeat = losses.length > 0
+      ? losses.reduce((max, m) => m.goalDifference < max.goalDifference ? m : max, losses[0])
+      : null;
+
+    // Match with highest goals
+    const highestGoalsMatch = teamMatches.reduce((max, m) => 
+      m.totalGoals > max.totalGoals ? m : max, teamMatches[0]
+    );
+
+    // Match with lowest goals
+    const lowestGoalsMatch = teamMatches.reduce((min, m) => 
+      m.totalGoals < min.totalGoals ? m : min, teamMatches[0]
+    );
+
+    // Attendance records (home games only)
+    // Parse attendance for all matches first
+    const matchesWithParsedAttendance = teamMatches.map(m => ({
+      ...m,
+      attendance: parseAttendance(m.attendance)
+    }));
+    
+    const homeMatches = matchesWithParsedAttendance.filter(m => m.isHome && m.attendance != null && !isNaN(m.attendance));
+    const highestAttendance = homeMatches.length > 0
+      ? homeMatches.reduce((max, m) => {
+          const maxAttendance = max.attendance;
+          const mAttendance = m.attendance;
+          return (mAttendance != null && maxAttendance != null && mAttendance > maxAttendance) ? m : max;
+        }, homeMatches[0])
+      : null;
+    const lowestAttendance = homeMatches.length > 0
+      ? homeMatches.reduce((min, m) => {
+          const minAttendance = min.attendance;
+          const mAttendance = m.attendance;
+          return (mAttendance != null && minAttendance != null && mAttendance < minAttendance) ? m : min;
+        }, homeMatches[0])
+      : null;
+
+    // Last 10 matches for form guide (most recent first, then take first 10)
+    const last10Matches = teamMatches.slice(0, 10);
+
+    return {
+      totalGoalsFor,
+      totalGoalsAgainst,
+      wins: wins.length,
+      draws: draws.length,
+      losses: losses.length,
+      biggestWin,
+      heaviestDefeat,
+      highestGoalsMatch,
+      lowestGoalsMatch,
+      highestAttendance,
+      lowestAttendance,
+      last10Matches,
+      totalMatches: teamMatches.length
+    };
+  }, [matches, id]);
+
+  // Get league position with ordinal formatting (matching Standings.jsx sorting logic)
+  const leaguePosition = useMemo(() => {
+    if (!standings || standings.length === 0 || !team) return null;
+    
+    // Sort standings the same way as Standings.jsx (by points descending, then by goal difference, etc.)
+    const sortedStandings = [...standings].sort((a, b) => {
+      // Primary sort: Points (descending)
+      const aPts = a.pts != null ? Number(a.pts) : 0;
+      const bPts = b.pts != null ? Number(b.pts) : 0;
+      if (bPts !== aPts) return bPts - aPts;
+      
+      // Secondary sort: Goal difference (descending)
+      const aGd = a.gd != null ? Number(a.gd) : 0;
+      const bGd = b.gd != null ? Number(b.gd) : 0;
+      if (bGd !== aGd) return bGd - aGd;
+      
+      // Tertiary sort: Goals for (descending)
+      const aGf = a.gf != null ? Number(a.gf) : 0;
+      const bGf = b.gf != null ? Number(b.gf) : 0;
+      if (bGf !== aGf) return bGf - aGf;
+      
+      // Final sort: Team name (ascending) for consistency
+      const aName = (a.team_name || '').toString();
+      const bName = (b.team_name || '').toString();
+      return aName.localeCompare(bName);
+    });
+    
+    const index = sortedStandings.findIndex(s => String(s.team_id) === String(id));
+    if (index < 0) return null;
+    const position = index + 1;
+    
+    // Format as ordinal (1st, 2nd, 3rd, etc.)
+    const getOrdinal = (n) => {
+      const s = ['th', 'st', 'nd', 'rd'];
+      const v = n % 100;
+      return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    };
+    return getOrdinal(position);
+  }, [standings, id, team]);
+
+  // Filter and sort squad
+  const filteredSquad = useMemo(() => {
+    let filtered = [...squad];
+
+    // Filter by name
+    if (searchName) {
+      filtered = filtered.filter(player =>
+        player.player_name && player.player_name.toLowerCase().includes(searchName.toLowerCase())
+      );
+    }
+
+    // Filter by nationality
+    if (searchNationality) {
+      filtered = filtered.filter(player =>
+        player.nationality && player.nationality.toLowerCase().includes(searchNationality.toLowerCase())
+      );
+    }
+
+    // Filter by position
+    if (positionFilter !== 'all') {
+      const positionMap = {
+        'Goalkeeper': ['GK', 'Goalkeeper'],
+        'Defender': ['DF', 'Defender'],
+        'Midfielder': ['MF', 'Midfielder'],
+        'Forward': ['FW', 'Forward']
+      };
+      const validPositions = positionMap[positionFilter] || [];
+      filtered = filtered.filter(player => 
+        validPositions.some(pos => 
+          player.position === pos || 
+          (player.position && player.position.toLowerCase().includes(pos.toLowerCase()))
+        )
+      );
+    }
+
+    // Filter by captain
+    if (captainFilter) {
+      filtered = filtered.filter(player => player.is_captain === true);
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      const aVal = a[sortConfig.key];
+      const bVal = b[sortConfig.key];
+      
+      // Define string fields that should be compared as strings
+      const stringFields = ['player_name', 'position', 'nationality'];
+      
+      if (stringFields.includes(sortConfig.key)) {
+        // Handle string comparison with null checks
+        const aStr = (aVal || '').toString();
+        const bStr = (bVal || '').toString();
+        return sortConfig.direction === 'asc'
+          ? aStr.localeCompare(bStr)
+          : bStr.localeCompare(aStr);
+      }
+      
+      // Handle numeric comparison with null checks
+      const aNum = aVal != null ? Number(aVal) : 0;
+      const bNum = bVal != null ? Number(bVal) : 0;
+      return sortConfig.direction === 'asc' ? aNum - bNum : bNum - aNum;
+    });
+
+    return filtered;
+  }, [squad, positionFilter, searchName, searchNationality, captainFilter, sortConfig]);
+
+  // Handle sort
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Get sort icon
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) {
+      return <FaSort className="inline ml-1 text-gray-400" />;
+    }
+    return sortConfig.direction === 'asc' ? (
+      <FaSortUp className="inline ml-1 text-accent" />
+    ) : (
+      <FaSortDown className="inline ml-1 text-accent" />
+    );
+  };
+
+  // Get position abbreviation
   const getPositionAbbreviation = (position) => {
     const abbrev = {
       'Goalkeeper': 'GK',
@@ -89,14 +385,98 @@ const ClubDetail = () => {
     return abbrev[position] || position;
   };
 
+  // Get position color
   const getPositionColor = (position) => {
     const colors = {
-      'Goalkeeper': 'bg-yellow-100 text-yellow-800',
-      'Defender': 'bg-blue-100 text-blue-800',
-      'Midfielder': 'bg-green-100 text-green-800',
-      'Forward': 'bg-red-100 text-red-800'
+      'Goalkeeper': 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700',
+      'Defender': 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-700',
+      'Midfielder': 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700',
+      'Forward': 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-300 dark:border-red-700'
     };
-    return colors[position] || 'bg-gray-100 text-gray-800';
+    return colors[position] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-700';
+  };
+
+  // Chart data for season results (Doughnut)
+  const chartData = useMemo(() => {
+    if (!stats) {
+      console.log('⚠ No stats available for season results chart');
+      return null;
+    }
+    
+    const wins = stats.wins || 0;
+    const draws = stats.draws || 0;
+    const losses = stats.losses || 0;
+    
+    console.log(`📈 Season results: W=${wins}, D=${draws}, L=${losses}`);
+    
+    // Only show chart if there's at least one match
+    if (wins === 0 && draws === 0 && losses === 0) {
+      console.log('⚠ No match results to display');
+      return null;
+    }
+
+    const chartData = {
+      labels: ['Wins', 'Draws', 'Losses'],
+      datasets: [{
+        data: [wins, draws, losses],
+        backgroundColor: [
+          '#00FF85', // Green for wins (as specified)
+          '#9CA3AF', // Gray for draws (as specified)
+          '#EF0107'  // Red for losses (as specified)
+        ],
+        borderColor: [
+          '#00FF85',
+          '#9CA3AF',
+          '#EF0107'
+        ],
+        borderWidth: 2
+      }]
+    };
+    
+    console.log('📊 Season results chart data:', chartData);
+    return chartData;
+  }, [stats]);
+
+  // Chart data for goals (Bar chart)
+  const goalsChartData = useMemo(() => {
+    if (!stats) {
+      console.log('⚠ No stats available for goals chart');
+      return null;
+    }
+    
+    const goalsFor = stats.totalGoalsFor || 0;
+    const goalsAgainst = stats.totalGoalsAgainst || 0;
+
+    const chartData = {
+      labels: ['Goals For', 'Goals Against'],
+      datasets: [{
+        label: 'Goals',
+        data: [goalsFor, goalsAgainst],
+        backgroundColor: [
+          teamColor, // Team color for goals for
+          '#EF0107'  // Red for goals against (as specified)
+        ],
+        borderColor: [
+          teamColor,
+          '#EF0107'
+        ],
+        borderWidth: 2
+      }]
+    };
+    
+    console.log('📊 Goals chart data:', chartData);
+    return chartData;
+  }, [stats, teamColor]);
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.1,
+      },
+    },
   };
 
   if (loading) {
@@ -107,11 +487,11 @@ const ClubDetail = () => {
     );
   }
 
-  if (error || !club) {
+  if (error || !team) {
     return (
       <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-        <p className="font-bold">Error loading club</p>
-        <p>{error || 'Club not found'}</p>
+        <p className="font-bold">Error loading team</p>
+        <p>{error || 'Team not found'}</p>
         <Link to="/clubs" className="text-primary hover:underline mt-2 inline-block">
           ← Back to Clubs
         </Link>
@@ -119,182 +499,509 @@ const ClubDetail = () => {
     );
   }
 
-  return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center space-x-4 mb-6">
-        <Link
-          to="/clubs"
-          className="text-primary hover:text-accent transition-colors"
-        >
-          <FaArrowLeft className="text-2xl" />
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl font-heading font-bold text-gray-900">
-            {club.name}
-          </h1>
-        </div>
-      </div>
 
-      {/* Club Info Card */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="flex items-center space-x-4">
-            {club.logo_url ? (
+  return (
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-8"
+    >
+      {/* Hero Header Banner */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-xl shadow-lg overflow-hidden"
+        style={{ background: `linear-gradient(135deg, ${teamColor} 0%, ${teamColor}dd 100%)` }}
+      >
+        <div className="p-8 text-white">
+          <div className="flex items-center space-x-4 mb-6">
+            <Link
+              to="/clubs"
+              className="text-white/80 hover:text-white transition-colors"
+              aria-label="Back to clubs"
+            >
+              <FaArrowLeft className="text-2xl" />
+            </Link>
+            <div className="flex-1 flex items-center gap-6">
               <img
-                src={club.logo_url}
-                alt={club.name}
-                className="w-20 h-20 object-contain"
+                src={team.logo_url || getLogoUrl(team.team_name)}
+                alt={team.team_name}
+                className="w-24 h-24 rounded-full bg-white/20 p-2"
+                onError={(e) => {
+                  e.target.src = getLogoUrl(team.team_name);
+                }}
               />
-            ) : (
-              <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center">
-                <FaBuilding className="text-3xl text-gray-400" />
+              <div className="flex-1">
+                <h1 className="text-5xl font-heading font-bold mb-3">
+                  {team.team_name}
+                </h1>
+                <div className="flex flex-wrap items-center gap-4 text-white/90">
+                  {team.founded_year && (
+                    <div className="flex items-center gap-2">
+                      <FaCalendarAlt />
+                      <span>Founded {team.founded_year}</span>
+                    </div>
+                  )}
+                  {team.stadium_name && (
+                    <div className="flex items-center gap-2">
+                      <FaHome />
+                      <span>{team.stadium_name}</span>
+                      {team.stadium_capacity && (
+                        <span className="text-white/70">
+                          ({team.stadium_capacity.toLocaleString()} capacity)
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-6 mt-4 text-lg">
+                  <div className="flex items-center gap-2">
+                    <FaUsers className="text-white/80" />
+                    <span className="font-semibold">Manager:</span>
+                    <span>{team.manager_name || 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Performance Dashboard */}
+      {stats && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6"
+        >
+          <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+            <FaChartLine className="text-primary" />
+            Performance Dashboard
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* League Position */}
+            {leaguePosition && (
+              <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">League Position</div>
+                <div className="text-3xl font-bold text-primary">{leaguePosition}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">of {standings.length} teams</div>
               </div>
             )}
-            <div>
-              <h2 className="text-xl font-heading font-bold text-gray-900">{club.name}</h2>
-              {club.founded && (
-                <p className="text-gray-600 flex items-center space-x-2">
-                  <FaCalendarAlt />
-                  <span>Founded {club.founded}</span>
-                </p>
-              )}
-            </div>
-          </div>
 
-          <div className="space-y-2">
-            <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
-              <FaMapMarkerAlt className="text-primary" />
-              <span>Stadium</span>
-            </h3>
-            <p className="text-gray-700">{club.stadium_name}</p>
-            <p className="text-gray-600 text-sm">{club.stadium_city}</p>
-            {club.stadium_capacity && (
-              <p className="text-gray-600 text-sm">
-                Capacity: {club.stadium_capacity.toLocaleString()}
-              </p>
+            {/* Goal Stats */}
+            <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/10 rounded-lg p-4 border border-green-200 dark:border-green-800">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Goals</div>
+              <div className="text-2xl font-bold text-green-700 dark:text-green-400">
+                {stats.totalGoalsFor} <span className="text-lg text-gray-600 dark:text-gray-400">GF</span>
+              </div>
+              <div className="text-lg font-semibold text-red-600 dark:text-red-400 mt-1">
+                {stats.totalGoalsAgainst} <span className="text-sm text-gray-600 dark:text-gray-400">GA</span>
+              </div>
+            </div>
+
+            {/* Biggest Win */}
+            {stats.biggestWin && (
+              <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/10 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Biggest Win</div>
+                <div className="text-lg font-bold text-green-700 dark:text-green-400">
+                  vs {stats.biggestWin.opponent} ({stats.biggestWin.teamScore}-{stats.biggestWin.opponentScore})
+                </div>
+              </div>
+            )}
+
+            {/* Heaviest Defeat */}
+            {stats.heaviestDefeat && (
+              <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/10 rounded-lg p-4 border border-red-200 dark:border-red-800">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Heaviest Defeat</div>
+                <div className="text-lg font-bold text-red-700 dark:text-red-400">
+                  vs {stats.heaviestDefeat.opponent} ({stats.heaviestDefeat.opponentScore}-{stats.heaviestDefeat.teamScore})
+                </div>
+              </div>
+            )}
+
+            {/* Highest Goals Match */}
+            {stats.highestGoalsMatch && (
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/10 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Highest Scoring Match</div>
+                <div className="text-lg font-bold text-blue-700 dark:text-blue-400">
+                  {stats.highestGoalsMatch.totalGoals} goals
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  {stats.highestGoalsMatch.teamScore}-{stats.highestGoalsMatch.opponentScore} vs {stats.highestGoalsMatch.opponent}
+                </div>
+              </div>
+            )}
+
+            {/* Lowest Goals Match */}
+            {stats.lowestGoalsMatch && (
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/20 dark:to-gray-700/10 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Lowest Scoring Match</div>
+                <div className="text-lg font-bold text-gray-700 dark:text-gray-400">
+                  {stats.lowestGoalsMatch.totalGoals} goals
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  {stats.lowestGoalsMatch.teamScore}-{stats.lowestGoalsMatch.opponentScore} vs {stats.lowestGoalsMatch.opponent}
+                </div>
+              </div>
+            )}
+
+            {/* Attendance Records */}
+            {stats.highestAttendance && (
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/10 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Highest Attendance</div>
+                <div className="text-lg font-bold text-purple-700 dark:text-purple-400">
+                  {(() => {
+                    const attendance = parseAttendance(stats.highestAttendance.attendance);
+                    return attendance != null && !isNaN(attendance) 
+                      ? new Intl.NumberFormat('en-US').format(attendance) 
+                      : 'N/A';
+                  })()}
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  vs {stats.highestAttendance.opponent}
+                </div>
+              </div>
+            )}
+
+            {stats.lowestAttendance && (
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/10 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Lowest Attendance</div>
+                <div className="text-lg font-bold text-purple-700 dark:text-purple-400">
+                  {(() => {
+                    const attendance = parseAttendance(stats.lowestAttendance.attendance);
+                    return attendance != null && !isNaN(attendance) 
+                      ? new Intl.NumberFormat('en-US').format(attendance) 
+                      : 'N/A';
+                  })()}
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  vs {stats.lowestAttendance.opponent}
+                </div>
+              </div>
             )}
           </div>
+        </motion.div>
+      )}
 
-          <div className="space-y-2">
-            <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
-              <FaUsers className="text-primary" />
-              <span>Statistics</span>
-            </h3>
-            <p className="text-gray-700">Players: {club.player_count || 0}</p>
-            <p className="text-gray-700">Matches: {club.match_count || 0}</p>
+      {/* Form Guide */}
+      {stats && stats.last10Matches.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6"
+        >
+          <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">
+            Form Guide (Last 10 Matches)
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {stats.last10Matches.map((match, index) => {
+              const bgColor = match.result === 'W' 
+                ? 'bg-[#00FF85] hover:bg-[#00E677]' 
+                : match.result === 'D' 
+                ? 'bg-[#9CA3AF] hover:bg-[#6B7280]' 
+                : 'bg-[#EF0107] hover:bg-[#DC0106]';
+              
+              // Format date nicely (e.g., "Aug 12")
+              const matchDate = new Date(match.date);
+              const formattedDate = matchDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              const tooltipText = `${match.isHome ? 'vs' : 'at'} ${match.opponent} (${match.teamScore}-${match.opponentScore}) - ${formattedDate}`;
+              
+              return (
+                <div
+                  key={index}
+                  className={`${bgColor} text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg relative group`}
+                  title={tooltipText}
+                >
+                  {match.result}
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
+                    {tooltipText}
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
-      </div>
+        </motion.div>
+      )}
 
-      {/* Club Stats */}
-      <ClubStats clubId={id} />
-
-      {/* Charts */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-heading font-bold text-gray-900">Performance Charts</h2>
-          <div className="flex space-x-4">
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showGoalsChart}
-                onChange={() => setShowGoalsChart(!showGoalsChart)}
-                className="rounded"
-              />
-              <span className="text-sm text-gray-700">Goals Chart</span>
-            </label>
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showResultsChart}
-                onChange={() => setShowResultsChart(!showResultsChart)}
-                className="rounded"
-              />
-              <span className="text-sm text-gray-700">Results Chart</span>
-            </label>
-          </div>
-        </div>
-
+      {/* Charts Section */}
+      {stats && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {showGoalsChart && (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <GoalsChart matches={matches} />
-            </div>
+          {/* Season Results Chart (Doughnut) */}
+          {chartData ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6"
+            >
+              <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">
+                Season Results
+              </h2>
+              <div className="flex justify-center">
+                <div className="w-64 h-64">
+                  <Doughnut 
+                    data={chartData} 
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      plugins: {
+                        legend: {
+                          position: 'bottom',
+                          labels: {
+                            padding: 15,
+                            font: {
+                              size: 14
+                            },
+                            color: '#374151'
+                          }
+                        },
+                        tooltip: {
+                          callbacks: {
+                            label: function(context) {
+                              const label = context.label || '';
+                              const value = context.parsed || 0;
+                              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                              return `${label}: ${value} (${percentage}%)`;
+                            }
+                          }
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6"
+            >
+              <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">
+                Season Results
+              </h2>
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                No match data available
+              </div>
+            </motion.div>
           )}
-          {showResultsChart && (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <ResultsChart matches={matches} />
-            </div>
+
+          {/* Goals Chart (Bar) */}
+          {goalsChartData ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6"
+            >
+              <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">
+                Goals (GF/GA)
+              </h2>
+              <div className="h-64">
+                <Bar 
+                  data={goalsChartData} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        display: false
+                      },
+                      tooltip: {
+                        callbacks: {
+                          label: function(context) {
+                            return `${context.label}: ${context.parsed.y}`;
+                          }
+                        }
+                      }
+                    },
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        ticks: {
+                          stepSize: 1
+                        }
+                      }
+                    }
+                  }}
+                />
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6"
+            >
+              <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">
+                Goals (GF/GA)
+              </h2>
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                No goal data available
+              </div>
+            </motion.div>
           )}
         </div>
-      </div>
+      )}
 
-      {/* Squad Table */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-heading font-bold text-gray-900">Squad</h2>
-          <p className="text-gray-600 text-sm mt-1">{squad.length} players</p>
+      {/* Full Squad List */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg overflow-hidden"
+      >
+        <div className="p-6 border-b border-gray-200 dark:border-neutral-700">
+          <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">
+            Full Squad
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+            Showing {filteredSquad.length} of {squad.length} players
+          </p>
+          
+          {/* Filters */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <motion.div
+                className="relative"
+                whileHover={{ scale: 1.02 }}
+              >
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by name..."
+                  value={searchName}
+                  onChange={(e) => setSearchName(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-300 focus:border-green-400 transition-all duration-300"
+                />
+              </motion.div>
+
+              <motion.div
+                className="relative"
+                whileHover={{ scale: 1.02 }}
+              >
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by nationality..."
+                  value={searchNationality}
+                  onChange={(e) => setSearchNationality(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-300 focus:border-green-400 transition-all duration-300"
+                />
+              </motion.div>
+
+              <motion.div
+                className="relative"
+                whileHover={{ scale: 1.02 }}
+              >
+                <FaFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
+                <select
+                  value={positionFilter}
+                  onChange={(e) => setPositionFilter(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-300 focus:border-green-400 appearance-none transition-all duration-300 hover:shadow-xl"
+                >
+                  <option value="all">All Positions</option>
+                  <option value="Goalkeeper">Goalkeeper</option>
+                  <option value="Defender">Defender</option>
+                  <option value="Midfielder">Midfielder</option>
+                  <option value="Forward">Forward</option>
+                </select>
+              </motion.div>
+
+              <motion.button
+                onClick={() => setCaptainFilter(!captainFilter)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`
+                  flex items-center justify-center space-x-2 px-4 py-2 rounded-lg font-semibold text-sm
+                  transition-all duration-300 shadow-md
+                  ${captainFilter 
+                    ? 'bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 border-2 border-yellow-300 dark:border-yellow-700 shadow-lg' 
+                    : 'bg-gray-100 dark:bg-neutral-700 text-gray-700 dark:text-gray-300 border-2 border-gray-300 dark:border-neutral-600 hover:bg-gray-200 dark:hover:bg-neutral-600'
+                  }
+                `}
+              >
+                <FaCrown className={captainFilter ? 'text-yellow-900' : 'text-gray-500 dark:text-gray-400'} />
+                <span>{captainFilter ? 'Captains Only' : 'Show Captains'}</span>
+              </motion.button>
+            </div>
+          </div>
         </div>
         
-        {squad.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-primary text-white">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider">
-                    Position
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider">
-                    Nationality
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider">
-                    Age
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {squad.map((player) => (
-                  <tr key={player.player_id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {player.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getPositionColor(player.position)}`}>
-                        {getPositionAbbreviation(player.position)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {player.nationality || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {player.age || 'N/A'}
-                    </td>
-                  </tr>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
+            <thead className="bg-primary text-white sticky top-0 z-10">
+              <tr>
+                {['player_name', 'position', 'nationality', 'jersey_number'].map((key) => (
+                  <th
+                    key={key}
+                    className="px-6 py-3 text-left text-xs font-heading font-semibold uppercase tracking-wider cursor-pointer hover:bg-primary/80 transition-colors"
+                    onClick={() => handleSort(key)}
+                  >
+                    {key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    <motion.span
+                      animate={{ rotate: sortConfig.key === key ? [0, 360] : 0 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      {getSortIcon(key)}
+                    </motion.span>
+                </th>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="p-8 text-center text-gray-500">
-            No squad data available
-          </div>
-        )}
-      </div>
-
-      {/* Club Matches */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">Recent Matches</h2>
-        {matches.length > 0 ? (
-          <MatchList matches={matches} />
-        ) : (
-          <p className="text-gray-500 text-center py-8">No matches found for this club</p>
-        )}
-      </div>
-    </div>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-neutral-900 divide-y divide-gray-200 dark:divide-neutral-700">
+              {filteredSquad.map((player, index) => (
+                <motion.tr
+                  key={player.id || `player-${index}`}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.02 }}
+                  className={`
+                    ${index % 2 === 0 ? 'bg-white dark:bg-neutral-900' : 'bg-gray-50/80 dark:bg-neutral-800/80'}
+                    hover:bg-blue-50/70 dark:hover:bg-blue-900/70
+                    transition-all duration-300
+                  `}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                    <div className="flex items-center space-x-2">
+                      <span>{player.player_name}</span>
+                      {player.is_captain && (
+                        <motion.span
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-yellow-900 shadow-lg border border-yellow-300 dark:border-yellow-700"
+                          title="Team Captain"
+                        >
+                          <FaCrown className="mr-1" />
+                          C
+                        </motion.span>
+                      )}
+                    </div>
+                        </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${getPositionColor(player.position)}`}>
+                      {getPositionAbbreviation(player.position)}
+                    </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                          {player.nationality || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                          {player.jersey_number || 'N/A'}
+                        </td>
+                </motion.tr>
+                    ))}
+            </tbody>
+          </table>
+          {filteredSquad.length === 0 && (
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+              No players found matching your filters.
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
   );
 };
 

@@ -2,7 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+/* Font imports from @fontsource */
+@import '@fontsource/chakra-petch/400.css';
+@import '@fontsource/chakra-petch/500.css';
+@import '@fontsource/chakra-petch/600.css';
+@import '@fontsource/chakra-petch/700.css';
+@import '@fontsource/inter/300.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
 
 :root {
   --primary-color: #38003C;
@@ -16,18 +25,102 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply font-body bg-background text-gray-900;
+    @apply font-body bg-background dark:bg-neutral-900 text-gray-900 dark:text-gray-100;
     margin: 0;
     padding: 0;
     min-height: 100vh;
+    transition: background-color 300ms ease-in-out, color 300ms ease-in-out;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
   }
+
+  * {
+    @apply transition-all duration-300 ease-in-out;
+    box-sizing: border-box;
+  }
+
+  /* Global interactive styles with cursor-pointer and smooth transitions */
+  button, a, input, select, textarea, [role="button"] {
+    @apply cursor-pointer transition-all duration-300 ease-in-out;
+  }
+
+  /* Enhanced hover effects for interactive elements */
+  button:hover, a:hover, [role="button"]:hover {
+    @apply transition-all duration-300 ease-in-out;
+  }
+
+  /* Links with enhanced hover states */
+  a {
+    @apply transition-all duration-300 ease-in-out;
+  }
+
+  a:hover {
+    @apply transition-all duration-300 ease-in-out;
+  }
 }
 
-* {
-  box-sizing: border-box;
+@layer utilities {
+  /* Global interactive element styles */
+  .cursor-pointer {
+    cursor: pointer;
+    transition: all 300ms ease-in-out;
+  }
+
+  .cursor-pointer:hover {
+    transition: all 300ms ease-in-out;
+  }
+
+  /* High contrast and glow effects for dark mode */
+  .dark {
+    color-scheme: dark;
+  }
+
+  /* Enhanced glow effects that work in both light and dark modes */
+  .glow-accent {
+    box-shadow: 0 0 20px rgba(0, 255, 133, 0.2);
+  }
+
+  .dark .glow-accent {
+    box-shadow: 0 0 25px rgba(0, 255, 133, 0.4);
+  }
+
+  .glow-secondary {
+    box-shadow: 0 0 20px rgba(4, 245, 255, 0.2);
+  }
+
+  .dark .glow-secondary {
+    box-shadow: 0 0 25px rgba(4, 245, 255, 0.4);
+  }
+
+  /* High contrast text in dark mode */
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+    @apply text-white;
+  }
+
+  .dark p, .dark span, .dark div {
+    @apply text-gray-100;
+  }
+
+  /* Interactive scale effects */
+  .interactive-scale:hover {
+    transform: scale(1.02);
+    transition: transform 300ms ease-in-out;
+  }
+
+  .interactive-scale-lg:hover {
+    transform: scale(1.05);
+    transition: transform 300ms ease-in-out;
+  }
+
+  /* Smooth transitions for all interactive elements */
+  button, a, input, select, textarea, [role="button"], .interactive {
+    transition: all 300ms ease-in-out;
+  }
 }
