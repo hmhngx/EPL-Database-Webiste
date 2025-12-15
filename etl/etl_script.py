@@ -5,6 +5,7 @@ Ingests CSV/XLSX data into PostgreSQL database via Supabase
 
 import os
 import sys
+import re
 import pandas as pd
 import logging
 from datetime import datetime
@@ -534,11 +535,192 @@ class PremierLeagueETL:
             self.stats['errors'].append(f"Load players: {str(e)}")
             return False
     
+    def validate_youtube_link(self, link: str) -> Optional[str]:
+        """
+        Validate and normalize YouTube link
+        
+        Args:
+            link: YouTube URL or video ID
+            
+        Returns:
+            Normalized YouTube URL or None if invalid
+        """
+        if not link or pd.isna(link):
+            return None
+        
+        link = str(link).strip()
+        if not link:
+            return None
+        
+        # If it's already a full URL, validate it
+        if 'youtube.com' in link or 'youtu.be' in link:
+            # Extract video ID from various YouTube URL formats
+            patterns = [
+                r'(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})',
+                r'youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})'
+            ]
+            for pattern in patterns:
+                match = re.search(pattern, link)
+                if match:
+                    video_id = match.group(1)
+                    return f"https://www.youtube.com/watch?v={video_id}"
+            # If it's a valid URL format but we couldn't extract ID, return as-is
+            if link.startswith('http'):
+                return link
+        
+        # If it's just a video ID (11 characters), convert to full URL
+        if len(link) == 11 and link.replace('-', '').replace('_', '').isalnum():
+            return f"https://www.youtube.com/watch?v={link}"
+        
+        # Invalid format
+        logger.warning(f"Invalid YouTube link format: {link}")
+        return None
+    
+    def validate_2023_24_season(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, List[str]]:
+        """
+        Comprehensive validation suite for 2023/24 Premier League season data
+        
+        Args:
+            df: DataFrame with match data
+            
+        Returns:
+            Tuple of (validated_df, validation_errors)
+        """
+        validation_errors = []
+        original_count = len(df)
+        
+        # 1. Validate season date range (2023-08-01 to 2024-05-31)
+        season_start = pd.Timestamp('2023-08-01')
+        season_end = pd.Timestamp('2024-05-31')
+        date_mask = (df['date'] >= season_start) & (df['date'] <= season_end)
+        invalid_dates = df[~date_mask]
+        if len(invalid_dates) > 0:
+            validation_errors.append(
+                f"Found {len(invalid_dates)} matches outside 2023/24 season range (2023-08-01 to 2024-05-31)"
+            )
+            df = df[date_mask]
+        
+        # 2. Validate goal ranges (0-10 is reasonable for Premier League)
+        invalid_goals = df[(df['home_goals'] < 0) | (df['home_goals'] > 10) | 
+                           (df['away_goals'] < 0) | (df['away_goals'] > 10)]
+        if len(invalid_goals) > 0:
+            validation_errors.append(
+                f"Found {len(invalid_goals)} matches with invalid goal counts (outside 0-10 range)"
+            )
+            df = df[(df['home_goals'] >= 0) & (df['home_goals'] <= 10) & 
+                   (df['away_goals'] >= 0) & (df['away_goals'] <= 10)]
+        
+        # 3. Validate attendance (if present) - reasonable range for Premier League
+        if 'attendance' in df.columns:
+            attendance_mask = df['attendance'].isna() | (
+                (df['attendance'] >= 0) & (df['attendance'] <= 100000)
+            )
+            invalid_attendance = df[~attendance_mask]
+            if len(invalid_attendance) > 0:
+                validation_errors.append(
+                    f"Found {len(invalid_attendance)} matches with invalid attendance (outside 0-100000 range)"
+                )
+                df = df[attendance_mask]
+        
+        # 4. Check for duplicate matches (same teams, same date)
+        duplicates = df.duplicated(subset=['home_team', 'away_team', 'date'], keep=False)
+        if duplicates.any():
+            dup_count = duplicates.sum() // 2  # Each duplicate pair counts as 1
+            validation_errors.append(
+                f"Found {dup_count} duplicate match(es) (same teams on same date)"
+            )
+            df = df.drop_duplicates(subset=['home_team', 'away_team', 'date'], keep='first')
+        
+        # 5. Validate expected match count (Premier League = 380 matches: 20 teams × 19 rounds × 2)
+        # Allow some flexibility but warn if way off
+        if len(df) < 350:
+            validation_errors.append(
+                f"Warning: Only {len(df)} matches found. Expected ~380 for full Premier League season."
+            )
+        elif len(df) > 400:
+            validation_errors.append(
+                f"Warning: {len(df)} matches found. Expected ~380. May include duplicates or extra data."
+            )
+        
+        # 6. Validate all teams are Premier League 2023/24 teams
+        expected_teams_2023_24 = set([
+            'Arsenal', 'Aston Villa', 'AFC Bournemouth', 'Brentford', 'Brighton & Hove Albion',
+            'Burnley', 'Chelsea', 'Crystal Palace', 'Everton', 'Fulham',
+            'Liverpool', 'Luton Town', 'Manchester City', 'Manchester United', 'Newcastle United',
+            'Nottingham Forest', 'Sheffield United', 'Tottenham Hotspur', 'West Ham United',
+            'Wolverhampton Wanderers'
+        ])
+        
+        all_teams = set(df['home_team'].dropna()) | set(df['away_team'].dropna())
+        unknown_teams = all_teams - expected_teams_2023_24
+        if unknown_teams:
+            validation_errors.append(
+                f"Found {len(unknown_teams)} team(s) not in 2023/24 Premier League: {unknown_teams}"
+            )
+        
+        filtered_count = len(df)
+        if original_count != filtered_count:
+            logger.info(f"Validation filtered {original_count - filtered_count} invalid matches")
+        
+        return df, validation_errors
+    
+    def flag_high_goal_matches(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Flag high-goal matches for chart peaks and aesthetic data handling
+        
+        Adds metadata columns for interactive features:
+        - is_high_scoring: Total goals >= 5
+        - is_peak_match: Total goals in top 10% of all matches
+        - goal_difference: For highlighting exciting comebacks
+        - match_excitement_score: Composite score for highlighting
+        
+        Args:
+            df: DataFrame with match data
+            
+        Returns:
+            DataFrame with added aesthetic flags
+        """
+        # Calculate total goals
+        df['total_goals'] = df['home_goals'] + df['away_goals']
+        df['goal_difference'] = abs(df['home_goals'] - df['away_goals'])
+        
+        # Flag high-scoring matches (5+ goals is considered high-scoring in Premier League)
+        df['is_high_scoring'] = df['total_goals'] >= 5
+        
+        # Flag peak matches (top 10% by total goals)
+        if len(df) > 0:
+            threshold_90th = df['total_goals'].quantile(0.90)
+            df['is_peak_match'] = df['total_goals'] >= threshold_90th
+        else:
+            df['is_peak_match'] = False
+        
+        # Calculate excitement score (higher = more exciting)
+        # Factors: total goals, close scoreline (low goal difference), high attendance
+        df['match_excitement_score'] = (
+            df['total_goals'] * 2 +  # More goals = more exciting
+            (6 - df['goal_difference']) * 1.5 +  # Close matches = more exciting (max 6 goal diff)
+            (df['attendance'].fillna(0) / 10000) * 0.5  # Higher attendance = more exciting
+        ).fillna(0)
+        
+        # Flag top 5% most exciting matches
+        if len(df) > 0:
+            threshold_95th = df['match_excitement_score'].quantile(0.95)
+            df['is_top_excitement'] = df['match_excitement_score'] >= threshold_95th
+        else:
+            df['is_top_excitement'] = False
+        
+        logger.info(f"Flagged {df['is_high_scoring'].sum()} high-scoring matches (5+ goals)")
+        logger.info(f"Flagged {df['is_peak_match'].sum()} peak matches (top 10% by goals)")
+        logger.info(f"Flagged {df['is_top_excitement'].sum()} top excitement matches (top 5%)")
+        
+        return df
+    
     def load_matches(self, file_path: str) -> bool:
         """
-        Load matches from CSV file
+        Load matches from CSV file with enhanced validation and aesthetic data handling
         
-        Expected columns: home_team, away_team, date, home_goals, away_goals, attendance (optional), referee (optional)
+        Expected columns: home_team, away_team, date, home_goals, away_goals, 
+                         attendance (optional), referee (optional), youtube_link (optional)
         """
         try:
             logger.info(f"Loading matches from {file_path}...")
@@ -591,6 +773,30 @@ class PremierLeagueETL:
             else:
                 df['referee'] = None
             
+            # Handle youtube_link column
+            if 'youtube_link' in df.columns or 'youtube' in df.columns:
+                youtube_col = 'youtube_link' if 'youtube_link' in df.columns else 'youtube'
+                df['youtube_link'] = df[youtube_col].apply(self.validate_youtube_link)
+            else:
+                df['youtube_link'] = None
+            
+            # Apply aesthetic data handling (flag high-goal matches for chart peaks)
+            df = self.flag_high_goal_matches(df)
+            
+            # Apply comprehensive 2023/24 season validation
+            df, validation_errors = self.validate_2023_24_season(df)
+            
+            # Log validation results
+            if validation_errors:
+                logger.warning("=" * 60)
+                logger.warning("Data Validation Warnings/Errors:")
+                logger.warning("=" * 60)
+                for error in validation_errors:
+                    logger.warning(f"  ⚠ {error}")
+                logger.warning("=" * 60)
+            else:
+                logger.info("✓ All data validation checks passed")
+            
             # Get club IDs from database
             with self.engine.connect() as conn:
                 clubs_result = conn.execute(
@@ -608,12 +814,29 @@ class PremierLeagueETL:
                     df['away_team'].isin(clubs_dict.keys())
                 ]
             
-            # Remove duplicates (same home, away, and date)
-            df = df.drop_duplicates(subset=['home_team', 'away_team', 'date'], keep='first')
+            # Get club IDs from database
+            with self.engine.connect() as conn:
+                clubs_result = conn.execute(
+                    text("SELECT club_id, name FROM clubs")
+                ).fetchall()
+                clubs_dict = {name: club_id for club_id, name in clubs_result}
+            
+            # Filter out matches with unknown clubs
+            all_clubs = set(df['home_team'].dropna()) | set(df['away_team'].dropna())
+            unknown_clubs = all_clubs - set(clubs_dict.keys())
+            if unknown_clubs:
+                logger.warning(f"Unknown clubs in matches: {unknown_clubs}")
+                df = df[
+                    df['home_team'].isin(clubs_dict.keys()) & 
+                    df['away_team'].isin(clubs_dict.keys())
+                ]
             
             # Insert into database
             inserted = 0
             skipped = 0
+            high_scoring_count = 0
+            peak_match_count = 0
+            
             with self.engine.connect() as conn:
                 for _, row in df.iterrows():
                     try:
@@ -644,16 +867,22 @@ class PremierLeagueETL:
                             logger.debug(f"Match already exists: {row['home_team']} vs {row['away_team']} on {row['date']}")
                             continue
                         
-                        # Insert new match
+                        # Track aesthetic flags for logging
+                        if row.get('is_high_scoring', False):
+                            high_scoring_count += 1
+                        if row.get('is_peak_match', False):
+                            peak_match_count += 1
+                        
+                        # Insert new match with youtube_link support
                         conn.execute(
                             text("""
                                 INSERT INTO matches (
                                     home_club_id, away_club_id, date, 
-                                    home_goals, away_goals, attendance, referee
+                                    home_goals, away_goals, attendance, referee, youtube_link
                                 )
                                 VALUES (
                                     :home_club_id, :away_club_id, :date,
-                                    :home_goals, :away_goals, :attendance, :referee
+                                    :home_goals, :away_goals, :attendance, :referee, :youtube_link
                                 )
                             """),
                             {
@@ -663,7 +892,8 @@ class PremierLeagueETL:
                                 "home_goals": int(row['home_goals']),
                                 "away_goals": int(row['away_goals']),
                                 "attendance": int(row['attendance']) if pd.notna(row['attendance']) else None,
-                                "referee": row['referee'] if pd.notna(row['referee']) else None
+                                "referee": row['referee'] if pd.notna(row['referee']) else None,
+                                "youtube_link": row.get('youtube_link') if pd.notna(row.get('youtube_link')) else None
                             }
                         )
                         inserted += 1
@@ -682,6 +912,15 @@ class PremierLeagueETL:
             
             self.stats['matches_inserted'] = inserted
             logger.info(f"✓ Loaded {inserted} new matches (skipped {skipped} duplicates)")
+            
+            # Log aesthetic data summary
+            if high_scoring_count > 0 or peak_match_count > 0:
+                logger.info(f"  📊 Aesthetic flags: {high_scoring_count} high-scoring, {peak_match_count} peak matches")
+            
+            youtube_count = df['youtube_link'].notna().sum() if 'youtube_link' in df.columns else 0
+            if youtube_count > 0:
+                logger.info(f"  🎥 YouTube links: {youtube_count} matches with video links")
+            
             return True
             
         except Exception as e:

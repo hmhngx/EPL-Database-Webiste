@@ -16,11 +16,18 @@ router.get('/', async (req, res, next) => {
   const startTime = Date.now();
   const pool = req.app.locals.pool;
 
+  if (!pool) {
+    return res.status(503).json({
+      success: false,
+      error: 'Database connection not available'
+    });
+  }
+
   try {
     const query = `
       SELECT 
-        club_id,
-        club,
+        team_id,
+        team_name,
         mp,
         w,
         d,
@@ -41,10 +48,16 @@ router.get('/', async (req, res, next) => {
       console.warn(`⚠ Standings query took ${duration}ms (target: <200ms)`);
     }
 
+    // Add logo_url for each team (generate if not present in database)
+    const standings = result.rows.map(team => ({
+      ...team,
+      logo_url: team.logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(team.team_name)}&background=38003C&color=fff&size=128`
+    }));
+
     res.json({
       success: true,
-      count: result.rows.length,
-      data: result.rows,
+      count: standings.length,
+      data: standings,
       duration: `${duration}ms`
     });
   } catch (error) {
