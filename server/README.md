@@ -1,36 +1,16 @@
 # Premier League Analytics API Server
 
-Express.js backend server for the Premier League Analytics app, connecting to PostgreSQL (Supabase) database.
+Express.js RESTful API server for the Premier League Analytics Hub application. Provides backend services connecting to PostgreSQL (Supabase) database with optimized connection pooling, comprehensive error handling, and performance monitoring.
 
-## Features
+## 🏗️ Architecture
 
-- ✅ Express.js server with connection pooling
-- ✅ PostgreSQL connection via Supabase
-- ✅ CORS middleware for frontend integration
-- ✅ JSON parsing middleware
-- ✅ Error handling middleware
-- ✅ Request logging with response times
-- ✅ Sub-200ms response time monitoring
-- ✅ Graceful shutdown handling
+- **Framework**: Express.js 4.x
+- **Database**: PostgreSQL (via Supabase)
+- **Connection Management**: pg connection pool (max 20 connections)
+- **CORS**: Configured for frontend integration
+- **Environment**: Node.js 18+ with ES modules
 
-## API Endpoints
-
-### Standings
-- `GET /api/standings` - Get league standings from `league_standings` view
-
-### Clubs
-- `GET /api/clubs` - List all clubs with stadium information
-- `GET /api/clubs/:id` - Get club details with stadium and statistics
-- `GET /api/clubs/:id/squad` - Get all players for a club
-
-### Matches
-- `GET /api/matches` - Get all matches (supports `?gameweek` query parameter)
-- `GET /api/matches/:id` - Get specific match details
-
-### Health Check
-- `GET /health` - Server and database health check
-
-## Setup
+## 🚀 Quick Start
 
 ### 1. Install Dependencies
 
@@ -40,49 +20,43 @@ npm install
 
 ### 2. Configure Environment Variables
 
-Create a `.env` file in the `server/` directory (or root directory):
+Create a `.env` file in the project root:
 
 ```powershell
-copy server\.env.example .env
+# Copy the example file
+Copy-Item server\env.example .env
 ```
 
-Edit `.env` and add your Supabase connection string:
+Edit `.env` and add your configuration:
 
-```
+```env
 SUPABASE_CONNECTION_STRING=postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres
 PORT=5000
 NODE_ENV=development
 FRONTEND_URL=http://localhost:5173
 ```
 
-To get your Supabase connection string:
-1. Go to your Supabase project dashboard
-2. Navigate to **Settings** > **Database**
-3. Copy the **Connection string** (URI format)
-
 ### 3. Start the Server
 
 ```powershell
+# Standard start
 npm run server
-```
 
-For development with auto-reload (requires Node.js 18+):
-
-```powershell
+# Development mode with auto-reload (Node.js 18+)
 npm run server:dev
 ```
 
-The server will start on `http://localhost:5000`
+The server will start on `http://localhost:5000` (or the port specified in `.env`).
 
-## API Usage Examples
+## 📡 API Endpoints
 
-### Get League Standings
+### Standings
 
-```bash
-GET http://localhost:5000/api/standings
-```
+#### `GET /api/standings`
 
-Response:
+Get current Premier League standings.
+
+**Response:**
 ```json
 {
   "success": true,
@@ -99,156 +73,445 @@ Response:
       "ga": 33,
       "gd": 58,
       "pts": 89
-    },
-    ...
+    }
   ],
   "duration": "45ms"
 }
 ```
 
-### Get All Clubs
+### Clubs
 
-```bash
-GET http://localhost:5000/api/clubs
-```
+#### `GET /api/clubs`
 
-### Get Club Details
+List all Premier League clubs with stadium information.
 
-```bash
-GET http://localhost:5000/api/clubs/{club_id}
-```
-
-### Get Club Squad
-
-```bash
-GET http://localhost:5000/api/clubs/{club_id}/squad
-```
-
-### Get All Matches
-
-```bash
-GET http://localhost:5000/api/matches
-```
-
-### Get Matches by Gameweek
-
-```bash
-GET http://localhost:5000/api/matches?gameweek=1
-```
-
-### Get Match Details
-
-```bash
-GET http://localhost:5000/api/matches/{match_id}
-```
-
-### Health Check
-
-```bash
-GET http://localhost:5000/health
-```
-
-## Response Format
-
-All API responses follow this format:
-
-**Success:**
+**Response:**
 ```json
 {
   "success": true,
   "count": 20,
-  "data": [...],
+  "data": [
+    {
+      "club_id": "uuid",
+      "name": "Manchester United",
+      "founded": 1878,
+      "logo_url": "https://...",
+      "stadium": {
+        "stadium_id": "uuid",
+        "name": "Old Trafford",
+        "city": "Manchester",
+        "capacity": 74310
+      }
+    }
+  ],
+  "duration": "32ms"
+}
+```
+
+#### `GET /api/clubs/:id`
+
+Get detailed information about a specific club.
+
+**Parameters:**
+- `id` (UUID) - Club ID
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "club_id": "uuid",
+    "name": "Manchester United",
+    "founded": 1878,
+    "logo_url": "https://...",
+    "stadium": { ... },
+    "statistics": {
+      "matches_played": 38,
+      "wins": 18,
+      "draws": 6,
+      "losses": 14
+    }
+  },
+  "duration": "28ms"
+}
+```
+
+#### `GET /api/clubs/:id/squad`
+
+Get all players for a specific club.
+
+**Parameters:**
+- `id` (UUID) - Club ID
+
+**Response:**
+```json
+{
+  "success": true,
+  "count": 25,
+  "data": [
+    {
+      "player_id": "uuid",
+      "name": "Bruno Fernandes",
+      "position": "Midfielder",
+      "nationality": "Portugal",
+      "age": 29
+    }
+  ],
+  "duration": "15ms"
+}
+```
+
+### Matches
+
+#### `GET /api/matches`
+
+Get all matches. Supports optional `gameweek` query parameter.
+
+**Query Parameters:**
+- `gameweek` (integer, optional) - Filter by gameweek (1-38)
+
+**Examples:**
+```bash
+# Get all matches
+GET /api/matches
+
+# Get matches for gameweek 1
+GET /api/matches?gameweek=1
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "count": 380,
+  "data": [
+    {
+      "match_id": "uuid",
+      "date": "2023-08-12T15:00:00Z",
+      "home_club": {
+        "club_id": "uuid",
+        "name": "Manchester United"
+      },
+      "away_club": {
+        "club_id": "uuid",
+        "name": "Liverpool"
+      },
+      "home_goals": 2,
+      "away_goals": 1,
+      "attendance": 70000,
+      "referee": "Michael Oliver",
+      "gameweek": 1
+    }
+  ],
+  "duration": "67ms"
+}
+```
+
+#### `GET /api/matches/:id`
+
+Get detailed information about a specific match.
+
+**Parameters:**
+- `id` (UUID) - Match ID
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "match_id": "uuid",
+    "date": "2023-08-12T15:00:00Z",
+    "home_club": { ... },
+    "away_club": { ... },
+    "home_goals": 2,
+    "away_goals": 1,
+    "attendance": 70000,
+    "referee": "Michael Oliver",
+    "gameweek": 1,
+    "youtube_link": "https://..."
+  },
+  "duration": "22ms"
+}
+```
+
+### Players
+
+#### `GET /api/players`
+
+List all players across all clubs.
+
+**Response:**
+```json
+{
+  "success": true,
+  "count": 550,
+  "data": [
+    {
+      "player_id": "uuid",
+      "name": "Mohamed Salah",
+      "position": "Forward",
+      "nationality": "Egypt",
+      "age": 31,
+      "club": {
+        "club_id": "uuid",
+        "name": "Liverpool"
+      }
+    }
+  ],
+  "duration": "89ms"
+}
+```
+
+### Health Check
+
+#### `GET /health`
+
+Check server and database connection status.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "database": "connected",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+## 📊 Response Format
+
+All API responses follow a consistent format:
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "count": 20,
+  "data": [ ... ],
   "duration": "45ms"
 }
 ```
 
-**Error:**
+- `success` (boolean) - Always `true` for successful requests
+- `count` (integer) - Number of items in `data` array
+- `data` (array/object) - Response data
+- `duration` (string) - Query execution time
+
+### Error Response
+
 ```json
 {
   "success": false,
-  "error": "Error message"
+  "error": "Error message description"
 }
 ```
 
-## Performance
+- `success` (boolean) - Always `false` for errors
+- `error` (string) - Error message
 
-The server monitors response times and logs warnings if queries exceed 200ms:
+## 🔒 Error Handling
+
+### HTTP Status Codes
+
+- **200 OK** - Successful request
+- **400 Bad Request** - Invalid parameters (e.g., invalid UUID format, invalid gameweek)
+- **404 Not Found** - Resource not found (e.g., club/match doesn't exist)
+- **500 Internal Server Error** - Database or server errors
+
+### Common Error Scenarios
+
+**Invalid UUID Format:**
+```json
+{
+  "success": false,
+  "error": "Invalid club ID format. Expected UUID."
+}
+```
+
+**Resource Not Found:**
+```json
+{
+  "success": false,
+  "error": "Club not found"
+}
+```
+
+**Database Connection Error:**
+```json
+{
+  "success": false,
+  "error": "Database connection failed"
+}
+```
+
+## ⚡ Performance
+
+### Connection Pooling
+
+The server uses PostgreSQL connection pooling with the following configuration:
+- **Maximum connections**: 20
+- **Idle timeout**: 30 seconds
+- **Connection timeout**: 2 seconds
+
+### Response Time Monitoring
+
+The server logs warnings if queries exceed 200ms:
 
 ```
 ⚠ Standings query took 250ms (target: <200ms)
 ```
 
-## Error Handling
+### Optimization Tips
 
-- **400 Bad Request**: Invalid parameters (e.g., invalid UUID format, invalid gameweek)
-- **404 Not Found**: Resource not found (e.g., club/match doesn't exist)
-- **500 Internal Server Error**: Database or server errors
+1. **Database Indexes**: Ensure indexes are created on frequently queried columns
+2. **Connection Pool**: Monitor pool usage and adjust max connections if needed
+3. **Query Optimization**: Review slow queries and optimize SQL statements
+4. **Caching**: Consider implementing Redis for frequently accessed data
 
-## Database Connection Pool
+## 🔧 Configuration
 
-The server uses a PostgreSQL connection pool with:
-- Maximum 20 connections
-- 30-second idle timeout
-- 2-second connection timeout
+### Environment Variables
 
-## CORS Configuration
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `SUPABASE_CONNECTION_STRING` | PostgreSQL connection string | Yes | - |
+| `PORT` | Server port | No | 5000 |
+| `NODE_ENV` | Environment mode | No | development |
+| `FRONTEND_URL` | Frontend URL for CORS | No | http://localhost:5173 |
 
-CORS is enabled for the frontend URL specified in `FRONTEND_URL` environment variable (default: `http://localhost:5173` for Vite).
+### CORS Configuration
 
-## Testing with Postman
+CORS is enabled for the frontend URL specified in `FRONTEND_URL` environment variable. The server allows:
+- **Origin**: Value from `FRONTEND_URL`
+- **Methods**: GET, POST, PUT, DELETE, OPTIONS
+- **Headers**: Content-Type, Authorization
+
+## 🧪 Testing
+
+### Manual Testing with cURL
+
+```powershell
+# Health check
+curl http://localhost:5000/health
+
+# Get standings
+curl http://localhost:5000/api/standings
+
+# Get all clubs
+curl http://localhost:5000/api/clubs
+
+# Get specific club
+curl http://localhost:5000/api/clubs/[CLUB-UUID]
+
+# Get matches
+curl http://localhost:5000/api/matches
+
+# Get matches by gameweek
+curl http://localhost:5000/api/matches?gameweek=1
+```
+
+### Testing with Postman
 
 1. Import the API endpoints into Postman
 2. Set base URL: `http://localhost:5000`
 3. Test each endpoint:
+   - `GET /health`
    - `GET /api/standings`
    - `GET /api/clubs`
    - `GET /api/clubs/{id}`
    - `GET /api/clubs/{id}/squad`
    - `GET /api/matches`
    - `GET /api/matches?gameweek=1`
+   - `GET /api/matches/{id}`
+   - `GET /api/players`
 
-## Troubleshooting
+## 🐛 Troubleshooting
 
 ### Connection Errors
 
-If you get database connection errors:
-1. Verify your Supabase connection string is correct
+**Issue**: Database connection errors
+
+**Solutions**:
+1. Verify Supabase connection string is correct
 2. Check that your IP is allowed in Supabase firewall settings
-3. Ensure your database password is correct
-4. Check that the database schema is set up correctly
+3. Ensure database password is correct (URL-encode special characters)
+4. Check Supabase dashboard for connection issues
 
 ### Port Already in Use
 
-If port 5000 is already in use:
-1. Change `PORT` in `.env` file
-2. Or kill the process using port 5000:
-   ```powershell
-   netstat -ano | findstr :5000
-   taskkill /PID <PID> /F
-   ```
+**Issue**: Port 5000 is already in use
+
+**Solutions**:
+```powershell
+# Find process using port 5000
+netstat -ano | findstr :5000
+
+# Kill the process (replace <PID> with actual process ID)
+taskkill /PID <PID> /F
+
+# Or change PORT in .env file
+```
 
 ### Slow Response Times
 
-If queries are slow:
-1. Check database indexes are created
+**Issue**: Queries are slow
+
+**Solutions**:
+1. Check database indexes are created (see `database/schema.sql`)
 2. Verify connection pool settings
 3. Check Supabase project performance metrics
-4. Review query execution plans
+4. Review query execution plans in Supabase dashboard
 
-## Project Structure
+### CORS Errors
+
+**Issue**: Frontend cannot access API
+
+**Solutions**:
+1. Verify `FRONTEND_URL` in `.env` matches your frontend URL
+2. Check that CORS middleware is enabled
+3. Ensure frontend is making requests to correct origin
+
+## 📁 Project Structure
 
 ```
 server/
 ├── server.js          # Main Express server file
-├── routes/
-│   ├── standings.js   # Standings API routes
-│   ├── clubs.js       # Clubs API routes
-│   └── matches.js     # Matches API routes
-├── .env.example       # Environment variables template
+├── routes/            # API route handlers
+│   ├── standings.js   # Standings endpoints
+│   ├── clubs.js       # Clubs endpoints
+│   ├── matches.js     # Matches endpoints
+│   └── players.js     # Players endpoints
+├── env.example        # Environment variables template
 └── README.md          # This file
 ```
 
-## License
+## 📝 Logging
+
+The server logs:
+- Server startup information
+- Database connection status
+- Request/response times
+- Performance warnings (queries > 200ms)
+- Error messages
+
+## 🔐 Security Considerations
+
+1. **Environment Variables**: Never commit `.env` file to version control
+2. **Connection String**: Keep database credentials secure
+3. **CORS**: Only allow trusted frontend origins
+4. **Input Validation**: All endpoints validate UUID formats and parameters
+5. **Error Messages**: Avoid exposing sensitive information in error responses
+
+## 📚 Related Documentation
+
+- **[Main README](../README.md)** - Project overview and setup
+- **[Database README](../database/README.md)** - Database schema and setup
+- **[ETL README](../etl/README.md)** - Data ingestion guide
+
+## 📄 License
 
 Part of the Premier League 2023/24 Analytics Hub project.
 
+---
+
+**© 2023/2024 Premier League Analytics Hub. Data provided by EPL Data.**
