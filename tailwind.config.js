@@ -14,6 +14,7 @@ export default {
         },
         accent: '#00FF85',
         secondary: '#04f5ff',
+        raspberry: '#D8195B',
         background: {
           DEFAULT: '#F3F4F6',
           dark: '#171717',

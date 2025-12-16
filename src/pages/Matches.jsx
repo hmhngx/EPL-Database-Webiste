@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { FaSpinner } from 'react-icons/fa';
+import { FaSpinner, FaCalendarAlt, FaChevronDown } from 'react-icons/fa';
 
 const Matches = () => {
   const [matches, setMatches] = useState([]);
@@ -240,21 +240,26 @@ const Matches = () => {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-heading font-bold text-gray-900 dark:text-white mb-2">
-          Premier League Matches
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">Scores and fixtures</p>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white bg-opacity-10 backdrop-blur-md rounded-2xl p-6 border-2 border-accent/30 shadow-lg"
+      >
+        <div className="flex items-center space-x-4">
+          <div className="flex-shrink-0">
+            <FaCalendarAlt className="text-4xl text-accent" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-heading font-bold text-white mb-2">
+              Premier League Matches
+            </h1>
+            <p className="text-gray-300">Scores and fixtures</p>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Sort By Dropdown */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <label 
-          htmlFor="sort-select" 
-          className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"
-        >
-          Sort By:
-        </label>
+      <div className="relative group max-w-md">
         <select
           id="sort-select"
           value={sortType}
@@ -264,29 +269,40 @@ const Matches = () => {
           }}
           aria-label="Sort matches"
           className="
-            bg-white dark:bg-neutral-800 
-            border border-gray-200 dark:border-neutral-700 
-            rounded-md 
-            px-4 py-2 
+            w-full
+            bg-white dark:bg-neutral-800
+            border-2 border-primary/50 dark:border-primary/60
+            rounded-xl 
+            pl-6 pr-14 py-4
             text-primary dark:text-white
-            font-medium
+            font-heading font-bold
+            text-base
             focus:outline-none 
-            focus:ring-2 
-            focus:ring-accent 
+            focus:ring-4 
+            focus:ring-accent/40
             focus:border-accent
-            transition-all duration-200
+            focus:shadow-xl
+            focus:shadow-accent/30
+            transition-all duration-300
             cursor-pointer
-            hover:border-primary dark:hover:border-accent
-            min-w-[200px]
+            hover:border-accent/80
+            hover:shadow-lg
+            hover:shadow-primary/20
+            appearance-none
+            shadow-lg
           "
         >
-          <option value="date_newest">Date (Newest First)</option>
-          <option value="date_oldest">Date (Oldest First)</option>
-          <option value="goals_high">Total Goals (High to Low)</option>
-          <option value="goals_low">Total Goals (Low to High)</option>
-          <option value="attendance_high">Attendance (High to Low)</option>
-          <option value="attendance_low">Attendance (Low to High)</option>
+          <option value="date_newest">📅 Date (Newest First)</option>
+          <option value="date_oldest">📅 Date (Oldest First)</option>
+          <option value="goals_high">⚽ Total Goals (High to Low)</option>
+          <option value="goals_low">⚽ Total Goals (Low to High)</option>
+          <option value="attendance_high">👥 Attendance (High to Low)</option>
+          <option value="attendance_low">👥 Attendance (Low to High)</option>
         </select>
+        {/* Custom dropdown arrow */}
+        <div className="absolute right-5 top-1/2 transform -translate-y-1/2 pointer-events-none">
+          <FaChevronDown className="text-primary dark:text-accent text-lg" />
+        </div>
       </div>
 
       {/* Matches Grid */}

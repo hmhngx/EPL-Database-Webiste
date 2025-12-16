@@ -192,12 +192,23 @@ const Players = () => {
       animate="visible"
       className="space-y-8"
     >
-      <div>
-        <h1 className="text-3xl font-heading font-bold text-gray-900 dark:text-white mb-2">
-          Player Directory
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">Search and filter all Premier League players</p>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white bg-opacity-10 backdrop-blur-md rounded-2xl p-6 border-2 border-accent/30 shadow-lg mb-8"
+      >
+        <div className="flex items-center space-x-4">
+          <div className="flex-shrink-0">
+            <FaSearch className="text-4xl text-accent" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-heading font-bold text-white mb-2">
+              Player Directory
+            </h1>
+            <p className="text-gray-300">Search and filter all Premier League players</p>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Filters */}
       <motion.div

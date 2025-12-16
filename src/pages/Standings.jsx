@@ -114,6 +114,32 @@ const Standings = () => {
     );
   };
 
+  // Helper function to get status color based on 2023/24 Premier League qualification rules
+  const getStatusColor = (position, teamName) => {
+    // Champions League (Positions 1-4): Emerald Green
+    if (position <= 4) {
+      return '#10B981'; // Emerald Green
+    }
+    
+    // Europa League: Position 5 (Tottenham) or Manchester United (Position 8 via FA Cup)
+    if (position === 5 || (teamName && teamName.toLowerCase().includes('manchester united'))) {
+      return '#0EA5E9'; // Sky Blue
+    }
+    
+    // Conference League (Position 6): Chelsea
+    if (position === 6) {
+      return '#F59E0B'; // Amber/Orange
+    }
+    
+    // Relegation (Positions 18-20): Rose Red
+    if (position >= 18) {
+      return '#E11D48'; // Rose Red
+    }
+    
+    // Default: transparent
+    return 'transparent';
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -268,12 +294,23 @@ const Standings = () => {
       className="space-y-8"
     >
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-heading font-bold text-gray-900 dark:text-white mb-2">
-          Premier League Standings
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">Current league table with sorting options</p>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white bg-opacity-10 backdrop-blur-md rounded-2xl p-6 border-2 border-accent/30 shadow-lg"
+      >
+        <div className="flex items-center space-x-4">
+          <div className="flex-shrink-0">
+            <FaTrophy className="text-4xl text-accent" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-heading font-bold text-white mb-2">
+              Premier League Standings
+            </h1>
+            <p className="text-gray-300">Current league table with sorting options</p>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Stats Summary Section */}
       {expandedSections.stats && (
@@ -330,6 +367,29 @@ const Standings = () => {
         animate={{ opacity: 1, y: 0 }}
         className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg overflow-hidden"
       >
+        {/* Qualification Legend */}
+        <div className="px-6 py-4 bg-gray-50 dark:bg-neutral-700/50 border-b border-gray-200 dark:border-neutral-700">
+          <div className="flex flex-wrap items-center gap-4 text-sm">
+            <span className="font-semibold text-gray-700 dark:text-gray-300 mr-2">Qualification:</span>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#10B981' }}></div>
+              <span className="text-gray-600 dark:text-gray-400">Champions League</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#0EA5E9' }}></div>
+              <span className="text-gray-600 dark:text-gray-400">Europa League</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#F59E0B' }}></div>
+              <span className="text-gray-600 dark:text-gray-400">Conference League</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#E11D48' }}></div>
+              <span className="text-gray-600 dark:text-gray-400">Relegation</span>
+            </div>
+          </div>
+        </div>
+        
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
             <thead className="sticky top-0 z-10" style={{ backgroundColor: '#38003C' }}>
@@ -396,7 +456,9 @@ const Standings = () => {
             <tbody className="bg-white dark:bg-neutral-900 divide-y divide-gray-200 dark:divide-neutral-700">
               <AnimatePresence>
                 {sortedStandings.map((team, index) => {
-                  const isTop4 = index < 4;
+                  const position = index + 1;
+                  const statusColor = getStatusColor(position, team.team_name);
+                  
                   return (
                     <motion.tr
                       key={team.team_id}
@@ -406,11 +468,13 @@ const Standings = () => {
                       exit="hidden"
                       className={`
                         ${index % 2 === 0 ? 'bg-white dark:bg-neutral-900' : 'bg-gray-50/80 dark:bg-neutral-800/80'}
-                        ${isTop4 ? 'hover:bg-green-50/80 dark:hover:bg-green-900/80' : 'hover:bg-gray-100 dark:hover:bg-neutral-700'}
+                        hover:bg-gray-100 dark:hover:bg-neutral-700
                         transition-all duration-300
                         border-l-4
-                        ${isTop4 ? 'border-green-500' : 'border-transparent'}
                       `}
+                      style={{
+                        borderLeftColor: statusColor,
+                      }}
                       whileHover={{ scale: 1.01, x: 4 }}
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">

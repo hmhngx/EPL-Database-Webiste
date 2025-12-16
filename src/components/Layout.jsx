@@ -48,7 +48,7 @@ const Layout = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background dark:bg-neutral-900">
+    <div className="min-h-screen flex flex-col bg-[#38003C]">
       {/* Navbar with purple-to-black gradient */}
       <motion.nav
         initial={{ y: -100, opacity: 0 }}
@@ -122,7 +122,7 @@ const Layout = () => {
 
       {/* Main Content Area */}
       <main
-        className="flex-1 bg-background dark:bg-neutral-900 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16"
+        className="flex-1 bg-[#38003C] max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16"
         role="main"
         aria-label="Main content"
       >
