@@ -64,7 +64,7 @@ router.get('/', async (req, res, next) => {
         m.home_team_score,
         m.away_team_score,
         CASE 
-          WHEN m.attendance IS NOT NULL THEN CAST(m.attendance AS INTEGER)
+          WHEN m.attendance IS NOT NULL THEN CAST(REPLACE(m.attendance::TEXT, ',', '') AS INTEGER)
           ELSE NULL
         END AS attendance,
         h.team_id AS home_team_id,
@@ -175,7 +175,7 @@ router.get('/', async (req, res, next) => {
     }
 
     // Order by - default to ordering by matchweek ascending (GW 1 first, then GW 38)
-    const validOrderBy = ['date', 'goals', 'total_goals', 'goal_difference', 'matchweek'];
+    const validOrderBy = ['date', 'goals', 'total_goals', 'goal_difference', 'matchweek', 'attendance'];
     const orderByField = validOrderBy.includes(orderBy.toLowerCase()) 
       ? orderBy.toLowerCase() === 'goals' ? 'total_goals' : orderBy.toLowerCase()
       : 'matchweek'; // Default to matchweek instead of date
@@ -186,6 +186,9 @@ router.get('/', async (req, res, next) => {
     } else if (orderByField === 'matchweek') {
       // Order by matchweek first, then by date within each matchweek
       baseQuery += ` ORDER BY mg.gameweek_num ${orderDir}, m.date ASC, m.id ASC`;
+    } else if (orderByField === 'attendance') {
+      // Handle attendance sorting with comma removal
+      baseQuery += ` ORDER BY CAST(REPLACE(COALESCE(m.attendance::TEXT, '0'), ',', '') AS INTEGER) ${orderDir}, m.date ${orderDir}`;
     } else {
       baseQuery += ` ORDER BY ${orderByField} ${orderDir}, m.date ${orderDir}`;
     }
@@ -324,7 +327,7 @@ router.get('/:id', async (req, res, next) => {
         m.home_team_score,
         m.away_team_score,
         CASE 
-          WHEN m.attendance IS NOT NULL THEN CAST(m.attendance AS INTEGER)
+          WHEN m.attendance IS NOT NULL THEN CAST(REPLACE(m.attendance::TEXT, ',', '') AS INTEGER)
           ELSE NULL
         END AS attendance,
         h.team_id AS home_team_id,
