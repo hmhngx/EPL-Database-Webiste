@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { FaSpinner, FaBuilding, FaCalendarAlt, FaUsers, FaMapMarkerAlt, FaTrophy } from 'react-icons/fa';
+import TeamLogo from '../components/TeamLogo';
 
 const Clubs = () => {
   const [clubs, setClubs] = useState([]);
@@ -114,23 +115,19 @@ const Clubs = () => {
                 whileHover={{ borderColor: '#04f5ff' }}
               >
                 <div className="flex flex-col items-center text-center space-y-4 flex-1">
-                  {club.logo_url ? (
-                    <motion.img
-                      src={club.logo_url}
-                      alt={club.team_name}
-                      className="w-24 h-24 object-contain"
-                      whileHover={{ 
+                  <TeamLogo
+                    logoUrl={club.logo_url}
+                    teamName={club.team_name}
+                    className="w-24 h-24 object-contain"
+                    motionProps={{
+                      whileHover: { 
                         brightness: 1.1,
                         scale: 1.1,
                         filter: 'drop-shadow(0 0 8px rgba(0, 255, 133, 0.4))'
-                      }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  ) : (
-                    <div className="w-24 h-24 bg-gray-200 dark:bg-neutral-700 rounded-full flex items-center justify-center">
-                      <FaBuilding className="text-4xl text-gray-400 dark:text-gray-500" />
-                    </div>
-                  )}
+                      },
+                      transition: { duration: 0.3 }
+                    }}
+                  />
                   
                   <div className="w-full flex-1 flex flex-col">
                     <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-white group-hover:text-primary dark:group-hover:text-accent transition-colors mb-3">

@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { FaSort, FaSortUp, FaSortDown, FaSpinner, FaChartLine, FaTrophy, FaEye, FaEyeSlash } from 'react-icons/fa';
-import ResultsChart from '../components/ResultsChart';
+import TeamLogo from '../components/TeamLogo';
 import GoalDifferenceChart from '../components/GoalDifferenceChart';
 import StatsSummary from '../components/StatsSummary';
 import ChartFilters from '../components/ChartFilters';
@@ -17,7 +17,6 @@ const Standings = () => {
   const [error, setError] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'pts', direction: 'desc' });
   const [showGDChart, setShowGDChart] = useState(true);
-  const [showResultsChart, setShowResultsChart] = useState(true);
   // eslint-disable-next-line no-unused-vars
   const [expandedSections, setExpandedSections] = useState({
     stats: true,
@@ -97,11 +96,125 @@ const Standings = () => {
     }
     const aVal = a[sortConfig.key] != null ? Number(a[sortConfig.key]) : 0;
     const bVal = b[sortConfig.key] != null ? Number(b[sortConfig.key]) : 0;
-    if (sortConfig.direction === 'asc') {
-      return aVal - bVal;
+    
+    // Primary sort by selected column
+    if (aVal !== bVal) {
+      return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
     }
-    return bVal - aVal;
+    
+    // Secondary sort: When sorting by points, also sort by goal difference, then goals scored
+    if (sortConfig.key === 'pts') {
+      const aGD = a.gd != null ? Number(a.gd) : 0;
+      const bGD = b.gd != null ? Number(b.gd) : 0;
+      if (aGD !== bGD) {
+        return bGD - aGD; // Higher goal difference first
+      }
+      // Tertiary sort by goals scored
+      const aGF = a.gf != null ? Number(a.gf) : 0;
+      const bGF = b.gf != null ? Number(b.gf) : 0;
+      return bGF - aGF; // More goals scored first
+    }
+    
+    return 0;
   });
+
+  // Calculate form (last 5 matches) for each team - memoized for performance
+  const teamFormData = useMemo(() => {
+    if (!matches || matches.length === 0 || !standings || standings.length === 0) {
+      return {};
+    }
+
+    const formMap = {};
+
+    standings.forEach(team => {
+      const teamId = team.team_id;
+      
+      // Filter matches where team is home or away
+      const teamMatches = matches.filter(match => {
+        return match.home_team_id === teamId || match.away_team_id === teamId;
+      });
+
+      // Sort by date descending (newest first) and take first 5
+      const last5Matches = teamMatches
+        .sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          return dateB - dateA; // Descending (newest first)
+        })
+        .slice(0, 5)
+        .reverse(); // Reverse to show oldest to newest (left to right)
+
+      // Process each match to determine result and create tooltip (following ClubDetail.jsx logic)
+      const formResults = last5Matches.map(match => {
+        const isHome = match.home_team_id === teamId;
+        const teamScore = isHome ? parseInt(match.home_team_score || 0, 10) : parseInt(match.away_team_score || 0, 10);
+        const opponentScore = isHome ? parseInt(match.away_team_score || 0, 10) : parseInt(match.home_team_score || 0, 10);
+        const opponentName = isHome ? match.away_team : match.home_team;
+        const matchDate = new Date(match.date);
+
+        let result;
+        if (teamScore > opponentScore) {
+          result = 'W';
+        } else if (teamScore === opponentScore) {
+          result = 'D';
+        } else {
+          result = 'L';
+        }
+
+        // Format date nicely (e.g., "Aug 12") - following ClubDetail.jsx format
+        const formattedDate = matchDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        
+        // Create tooltip text: "${isHome ? 'vs' : 'at'} ${opponentName} (${teamScore}-${opponentScore}) - ${formattedDate}"
+        // This matches the exact format used in ClubDetail.jsx
+        const tooltip = `${isHome ? 'vs' : 'at'} ${opponentName} (${teamScore}-${opponentScore}) - ${formattedDate}`;
+
+        return {
+          result,
+          tooltip,
+          teamScore,
+          opponentScore,
+          opponentName,
+          isHome,
+          date: matchDate
+        };
+      });
+
+      formMap[teamId] = formResults;
+    });
+
+    return formMap;
+  }, [matches, standings]);
+
+  // Form badge component with custom tooltip (matching ClubDetail.jsx design)
+  const FormBadge = ({ result, tooltip }) => {
+    const getBadgeClasses = () => {
+      switch (result) {
+        case 'W':
+          return 'bg-emerald-500 text-white';
+        case 'D':
+          return 'bg-slate-400 text-white';
+        case 'L':
+          return 'bg-rose-500 text-white';
+        default:
+          return 'bg-gray-400 text-white';
+      }
+    };
+
+    return (
+      <div className="relative group">
+        <div
+          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${getBadgeClasses()} cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg`}
+        >
+          {result}
+        </div>
+        {/* Custom tooltip matching ClubDetail.jsx design */}
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
+          {tooltip}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+        </div>
+      </div>
+    );
+  };
 
   const getSortIcon = (key) => {
     if (sortConfig.key !== key) {
@@ -451,6 +564,9 @@ const Standings = () => {
                 >
                   Pts {getSortIcon('pts')}
                 </th>
+                <th className="px-6 py-3 text-center text-xs font-heading font-semibold uppercase tracking-wider text-white">
+                  Form
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-neutral-900 divide-y divide-gray-200 dark:divide-neutral-700">
@@ -485,14 +601,19 @@ const Standings = () => {
                           to={`/teams/${team.team_id}`}
                           className="flex items-center space-x-3 hover:text-primary dark:hover:text-accent transition-colors"
                         >
-                          {team.logo_url && (
-                            <img 
-                              src={team.logo_url} 
-                              alt={team.team_name}
-                              className="w-8 h-8 rounded-full"
-                            />
-                          )}
-                          <span className="hover:underline">{team.team_name}</span>
+                          <TeamLogo 
+                            logoUrl={team.logo_url} 
+                            teamName={team.team_name}
+                            className="w-8 h-8 rounded-full"
+                          />
+                          <span className="hover:underline">
+                            {team.team_name}
+                            {team.total_adjustment && team.total_adjustment < 0 && (
+                              <span className="ml-2 text-[#D8195B] font-semibold">
+                                ({team.total_adjustment})
+                              </span>
+                            )}
+                          </span>
                         </Link>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 text-center">
@@ -516,8 +637,29 @@ const Standings = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white text-center">
                         {team.gd > 0 ? '+' : ''}{team.gd}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-white text-center">
+                      <td 
+                        className={`px-6 py-4 whitespace-nowrap text-sm font-bold text-center ${
+                          team.total_adjustment && team.total_adjustment < 0
+                            ? 'text-[#D8195B]'
+                            : 'text-gray-900 dark:text-white'
+                        }`}
+                      >
                         {team.pts}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <div className="flex gap-1 justify-center items-center">
+                          {teamFormData[team.team_id] && teamFormData[team.team_id].length > 0 ? (
+                            teamFormData[team.team_id].map((formMatch, idx) => (
+                              <FormBadge
+                                key={idx}
+                                result={formMatch.result}
+                                tooltip={formMatch.tooltip}
+                              />
+                            ))
+                          ) : (
+                            <span className="text-xs text-gray-400 dark:text-gray-500">-</span>
+                          )}
+                        </div>
                       </td>
                     </motion.tr>
                   );
@@ -525,6 +667,13 @@ const Standings = () => {
               </AnimatePresence>
             </tbody>
           </table>
+        </div>
+        
+        {/* Footer Note */}
+        <div className="px-6 py-4 bg-gray-50 dark:bg-neutral-700/50 border-t border-gray-200 dark:border-neutral-700">
+          <p className="text-xs text-gray-600 dark:text-gray-400 italic">
+            * Points deducted by the Premier League for Profit and Sustainability Rule (PSR) breaches.
+          </p>
         </div>
       </motion.div>
 
@@ -602,19 +751,6 @@ const Standings = () => {
                 <FaChartLine />
                 <span>Goal Difference Chart</span>
               </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowResultsChart(!showResultsChart)}
-                className={`px-4 py-2 rounded-lg border-2 transition-all duration-300 flex items-center space-x-2 ${
-                  showResultsChart
-                    ? 'bg-primary text-white border-primary shadow-lg shadow-green-500/50'
-                    : 'bg-gray-100 dark:bg-neutral-700 border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                {showResultsChart ? <FaEye /> : <FaEyeSlash />}
-                <span>Results Chart</span>
-              </motion.button>
             </div>
 
             {showGDChart && (
@@ -623,17 +759,6 @@ const Standings = () => {
               </div>
             )}
 
-            {showResultsChart && (
-              <div className="mt-6">
-                <h3 className="text-xl font-heading font-bold text-gray-900 dark:text-white mb-4">
-                  League Results Overview
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm">
-                  Visual representation of league-wide match results.
-                </p>
-                <ResultsChart matches={matches} />
-              </div>
-            )}
           </motion.div>
         </motion.div>
       )}

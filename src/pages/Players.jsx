@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaSpinner, FaSearch, FaFilter, FaSort, FaSortUp, FaSortDown, FaCrown } from 'react-icons/fa';
 import Filters from '../components/Filters';
+import TeamLogo from '../components/TeamLogo';
 
 const Players = () => {
   const [players, setPlayers] = useState([]);
@@ -386,13 +387,11 @@ const Players = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
-                          {player.team_logo && (
-                            <img
-                              src={player.team_logo}
-                              alt={player.team_name}
-                              className="w-6 h-6 object-contain"
-                            />
-                          )}
+                          <TeamLogo
+                            logoUrl={player.team_logo || player.logo_url}
+                            teamName={player.team_name}
+                            className="w-6 h-6 object-contain"
+                          />
                           <span className="text-sm text-gray-700 dark:text-gray-300">{player.team_name}</span>
                         </div>
                       </td>
@@ -456,13 +455,11 @@ const Players = () => {
               </div>
               <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 <div className="flex items-center space-x-2">
-                  {player.team_logo && (
-                    <img
-                      src={player.team_logo}
-                      alt={player.team_name}
-                      className="w-5 h-5 object-contain"
-                    />
-                  )}
+                  <TeamLogo
+                    logoUrl={player.team_logo || player.logo_url}
+                    teamName={player.team_name}
+                    className="w-5 h-5 object-contain"
+                  />
                   <span>{player.team_name}</span>
                 </div>
                 <div>Nationality: {player.nationality || 'N/A'}</div>

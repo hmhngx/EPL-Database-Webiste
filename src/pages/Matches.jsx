@@ -1,12 +1,18 @@
 import { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { FaSpinner, FaCalendarAlt, FaChevronDown } from 'react-icons/fa';
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from 'framer-motion';
+import { FaSpinner, FaCalendarAlt, FaChevronDown, FaVideo } from 'react-icons/fa';
+import LitePlayer from '../components/LitePlayer';
+import TeamLogo from '../components/TeamLogo';
+import FilterHub from '../components/FilterHub';
 
 const Matches = () => {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sortType, setSortType] = useState('date_newest');
+  const [showHighlights, setShowHighlights] = useState({});
+  const [selectedClub, setSelectedClub] = useState(null);
 
   useEffect(() => {
     const fetchMatches = async () => {
@@ -62,21 +68,41 @@ const Matches = () => {
     return homeGoals + awayGoals;
   };
 
-  // Sort matches based on sortType - memoized for performance
-  const sortedMatches = useMemo(() => {
+  // Extract unique club names from matches - memoized for performance
+  const uniqueClubs = useMemo(() => {
     if (!matches || matches.length === 0) {
       return [];
     }
+    const clubsSet = new Set();
+    matches.forEach(match => {
+      const homeTeam = match.home_team || match.home_team_name;
+      const awayTeam = match.away_team || match.away_team_name;
+      if (homeTeam) clubsSet.add(homeTeam);
+      if (awayTeam) clubsSet.add(awayTeam);
+    });
+    return Array.from(clubsSet).sort();
+  }, [matches]);
 
-    // Create a copy to avoid mutating the original array
-    const matchesCopy = Array.isArray(matches) ? [...matches] : [];
-    
-    if (matchesCopy.length === 0) {
+  // Filter matches by selected club - memoized for performance
+  const filteredMatches = useMemo(() => {
+    if (!selectedClub) {
+      return matches;
+    }
+    return matches.filter(match => {
+      const homeTeam = match.home_team || match.home_team_name;
+      const awayTeam = match.away_team || match.away_team_name;
+      return homeTeam === selectedClub || awayTeam === selectedClub;
+    });
+  }, [matches, selectedClub]);
+
+  // Sort matches based on sortType - memoized for performance
+  const sortedMatches = useMemo(() => {
+    if (!filteredMatches || filteredMatches.length === 0) {
       return [];
     }
 
     try {
-      const sorted = [...matchesCopy].sort((a, b) => {
+      const sorted = [...filteredMatches].sort((a, b) => {
         let comparison = 0;
 
         switch (sortType) {
@@ -185,9 +211,19 @@ const Matches = () => {
       console.error('Sort type:', sortType);
       console.error('Error details:', error.message, error.stack);
       // Return a copy of the original array if sorting fails
-      return Array.isArray(matches) ? [...matches] : [];
+      return Array.isArray(filteredMatches) ? [...filteredMatches] : [];
     }
-  }, [matches, sortType]);
+  }, [filteredMatches, sortType]);
+
+  // Handle club selection
+  const handleClubSelect = (club) => {
+    setSelectedClub(club);
+  };
+
+  // Handle clear filter
+  const handleClearFilter = () => {
+    setSelectedClub(null);
+  };
 
   // Track if this is the initial load to only animate on first render
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -258,156 +294,264 @@ const Matches = () => {
         </div>
       </motion.div>
 
-      {/* Sort By Dropdown */}
-      <div className="relative group max-w-md">
-        <select
-          id="sort-select"
-          value={sortType}
-          onChange={(e) => {
-            const newSortType = e.target.value;
-            setSortType(newSortType);
-          }}
-          aria-label="Sort matches"
-          className="
-            w-full
-            bg-white dark:bg-neutral-800
-            border-2 border-primary/50 dark:border-primary/60
-            rounded-xl 
-            pl-6 pr-14 py-4
-            text-primary dark:text-white
-            font-heading font-bold
-            text-base
-            focus:outline-none 
-            focus:ring-4 
-            focus:ring-accent/40
-            focus:border-accent
-            focus:shadow-xl
-            focus:shadow-accent/30
-            transition-all duration-300
-            cursor-pointer
-            hover:border-accent/80
-            hover:shadow-lg
-            hover:shadow-primary/20
-            appearance-none
-            shadow-lg
-          "
+      {/* Filter Hub and Sort Controls */}
+      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+        {/* Filter Hub */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex-1"
         >
-          <option value="date_newest">📅 Date (Newest First)</option>
-          <option value="date_oldest">📅 Date (Oldest First)</option>
-          <option value="goals_high">⚽ Total Goals (High to Low)</option>
-          <option value="goals_low">⚽ Total Goals (Low to High)</option>
-          <option value="attendance_high">👥 Attendance (High to Low)</option>
-          <option value="attendance_low">👥 Attendance (Low to High)</option>
-        </select>
-        {/* Custom dropdown arrow */}
-        <div className="absolute right-5 top-1/2 transform -translate-y-1/2 pointer-events-none">
-          <FaChevronDown className="text-primary dark:text-accent text-lg" />
-        </div>
+          <FilterHub
+            clubs={uniqueClubs}
+            selectedClub={selectedClub}
+            onClubSelect={handleClubSelect}
+            onClear={handleClearFilter}
+          />
+        </motion.div>
+
+        {/* Sort By Dropdown */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative group max-w-md w-full md:w-auto"
+        >
+          <select
+            id="sort-select"
+            value={sortType}
+            onChange={(e) => {
+              const newSortType = e.target.value;
+              setSortType(newSortType);
+            }}
+            aria-label="Sort matches"
+            className="
+              w-full
+              bg-white dark:bg-neutral-800
+              border-2 border-primary/50 dark:border-primary/60
+              rounded-xl 
+              pl-6 pr-14 py-4
+              text-primary dark:text-white
+              font-heading font-bold
+              text-base
+              focus:outline-none 
+              focus:ring-4 
+              focus:ring-accent/40
+              focus:border-accent
+              focus:shadow-xl
+              focus:shadow-accent/30
+              transition-all duration-300
+              cursor-pointer
+              hover:border-accent/80
+              hover:shadow-lg
+              hover:shadow-primary/20
+              appearance-none
+              shadow-lg
+            "
+          >
+            <option value="date_newest">📅 Date (Newest First)</option>
+            <option value="date_oldest">📅 Date (Oldest First)</option>
+            <option value="goals_high">⚽ Total Goals (High to Low)</option>
+            <option value="goals_low">⚽ Total Goals (Low to High)</option>
+            <option value="attendance_high">👥 Attendance (High to Low)</option>
+            <option value="attendance_low">👥 Attendance (Low to High)</option>
+          </select>
+          {/* Custom dropdown arrow */}
+          <div className="absolute right-5 top-1/2 transform -translate-y-1/2 pointer-events-none">
+            <FaChevronDown className="text-primary dark:text-accent text-lg" />
+          </div>
+        </motion.div>
       </div>
 
       {/* Matches Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {sortedMatches.map((match, index) => {
+      <AnimatePresence mode="wait">
+        {sortedMatches.length > 0 ? (
+          <motion.div
+            key="matches-grid"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+          >
+            {sortedMatches.map((match, index) => {
           const matchweek = match.matchweek || match.gameweek_num || calculateMatchweek(index);
           const hasScore = match.home_team_score !== null && match.away_team_score !== null;
+          const homeTeamName = match.home_team || match.home_team_name;
+          const awayTeamName = match.away_team || match.away_team_name;
+          const homeLogoUrl = match.home_logo_url || match.home_logo;
+          const awayLogoUrl = match.away_logo_url || match.away_logo;
+          
+          // Determine winner for highlighting
+          const homeScore = parseInt(match.home_team_score || 0, 10);
+          const awayScore = parseInt(match.away_team_score || 0, 10);
+          const homeWon = hasScore && homeScore > awayScore;
+          const awayWon = hasScore && awayScore > homeScore;
+          
+          // Format time for upcoming matches
+          const formatTime = (dateString) => {
+            const date = new Date(dateString);
+            return date.toLocaleTimeString('en-US', { 
+              hour: 'numeric', 
+              minute: '2-digit',
+              hour12: true 
+            });
+          };
           
           return (
             <motion.div
               key={match.match_id || `match-${match.date}-${index}`}
               variants={isInitialLoad ? cardVariants : undefined}
-              initial={isInitialLoad ? "hidden" : false}
-              animate={isInitialLoad ? "visible" : false}
+              initial={isInitialLoad ? "hidden" : { opacity: 0, scale: 0.9 }}
+              animate={isInitialLoad ? "visible" : { opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
               layout
               transition={{ 
                 layout: { duration: 0.1, ease: "easeOut" },
-                opacity: { duration: 0 },
-                y: { duration: 0 }
+                opacity: { duration: 0.2 },
+                scale: { duration: 0.2 }
               }}
-              className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6 relative hover:shadow-xl transition-shadow duration-300"
+              className="bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 relative hover:scale-[1.02] hover:shadow-2xl hover:shadow-[#38003C]/50 transition-all duration-300"
             >
-              {/* Matchweek Badge */}
-              {matchweek && (
-                <div className="absolute top-4 right-4">
-                  <span className="bg-gray-100 dark:bg-neutral-700 text-gray-700 dark:text-gray-300 text-xs font-semibold px-2 py-1 rounded">
+              {/* Header: Matchweek Badge and Date */}
+              <div className="flex items-center justify-between mb-6">
+                {matchweek && (
+                  <div className="bg-[#38003C] text-white text-xs font-semibold px-3 py-1.5 rounded-full">
                     GW {matchweek}
-                  </span>
+                  </div>
+                )}
+                <div className="text-sm text-gray-400 font-medium">
+                  {formatDate(match.date)}
                 </div>
-              )}
-
-              {/* Date Row */}
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                {formatDate(match.date)}
               </div>
 
-              {/* Teams and Score Row */}
-              <div className="flex items-center justify-between">
-                {/* Home Team */}
-                <div className="flex-1 text-left">
-                  <p className="text-base font-medium text-gray-900 dark:text-white">
-                    {match.home_team || match.home_team_name}
+              {/* Main Content: Versus Layout */}
+              <div className="grid grid-cols-3 gap-6 items-center mb-6">
+                {/* Left: Home Team */}
+                <div className="flex flex-col items-center justify-center space-y-3">
+                  <div className={`transition-all duration-300 ${homeWon ? 'opacity-100 scale-105' : 'opacity-90'}`}>
+                    <TeamLogo
+                      logoUrl={homeLogoUrl}
+                      teamName={homeTeamName}
+                      className="w-20 h-20 md:w-24 md:h-24 object-contain drop-shadow-xl"
+                    />
+                  </div>
+                  <p className={`text-sm md:text-base font-bold text-white text-center leading-tight ${homeWon ? 'text-[#00FF85]' : ''} line-clamp-2`}>
+                    {homeTeamName}
                   </p>
                 </div>
 
-                {/* Score */}
-                <div className="flex-shrink-0 mx-4">
+                {/* Center: Score/Time */}
+                <div className="flex items-center justify-center">
                   {hasScore ? (
-                    <div className="text-2xl font-bold" style={{ color: '#00FF85' }}>
-                      {match.home_team_score} - {match.away_team_score}
+                    <div className="flex items-center gap-3">
+                      <div className={`text-4xl md:text-5xl font-bold ${homeWon ? 'text-[#00FF85]' : 'text-white'}`}>
+                        {homeScore}
+                      </div>
+                      <div className="text-2xl text-gray-500 font-light">-</div>
+                      <div className={`text-4xl md:text-5xl font-bold ${awayWon ? 'text-[#00FF85]' : 'text-white'}`}>
+                        {awayScore}
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-lg font-semibold text-gray-400 dark:text-gray-500">
-                      vs
+                    <div className="text-xl md:text-2xl font-bold text-white">
+                      {formatTime(match.date)}
                     </div>
                   )}
                 </div>
 
-                {/* Away Team */}
-                <div className="flex-1 text-right">
-                  <p className="text-base font-medium text-gray-900 dark:text-white">
-                    {match.away_team || match.away_team_name}
+                {/* Right: Away Team */}
+                <div className="flex flex-col items-center justify-center space-y-3">
+                  <div className={`transition-all duration-300 ${awayWon ? 'opacity-100 scale-105' : 'opacity-90'}`}>
+                    <TeamLogo
+                      logoUrl={awayLogoUrl}
+                      teamName={awayTeamName}
+                      className="w-20 h-20 md:w-24 md:h-24 object-contain drop-shadow-xl"
+                    />
+                  </div>
+                  <p className={`text-sm md:text-base font-bold text-white text-center leading-tight ${awayWon ? 'text-[#00FF85]' : ''} line-clamp-2`}>
+                    {awayTeamName}
                   </p>
                 </div>
               </div>
 
-              {/* Attendance Row */}
-              {match.attendance != null && match.attendance !== '' && (() => {
-                // Handle attendance - ensure it's a number and format properly
-                let attendanceNum;
-                if (typeof match.attendance === 'number') {
-                  attendanceNum = match.attendance;
-                } else {
-                  // Parse string, removing any non-numeric characters (commas, spaces, etc.)
-                  const cleaned = String(match.attendance).replace(/[^0-9]/g, '');
-                  attendanceNum = cleaned ? parseInt(cleaned, 10) : 0;
-                }
-                
-                return attendanceNum > 0 ? (
-                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-neutral-700">
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
+              {/* Footer: Attendance and Highlights */}
+              <div className="space-y-3">
+                {/* Attendance */}
+                {match.attendance != null && match.attendance !== '' && (() => {
+                  // Handle attendance - ensure it's a number and format properly
+                  let attendanceNum;
+                  if (typeof match.attendance === 'number') {
+                    attendanceNum = match.attendance;
+                  } else {
+                    // Parse string, removing any non-numeric characters (commas, spaces, etc.)
+                    const cleaned = String(match.attendance).replace(/[^0-9]/g, '');
+                    attendanceNum = cleaned ? parseInt(cleaned, 10) : 0;
+                  }
+                  
+                  return attendanceNum > 0 ? (
+                    <div className="text-sm text-gray-400 text-center">
                       <span className="font-semibold">Attendance:</span>{' '}
-                      <span className="text-gray-900 dark:text-white">
+                      <span className="text-gray-300">
                         {attendanceNum.toLocaleString('en-US')}
                       </span>
                     </div>
-                  </div>
-                ) : null;
-              })()}
-            </motion.div>
-          );
-        })}
-      </div>
+                  ) : null;
+                })()}
 
-      {sortedMatches.length === 0 && !loading && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="bg-gray-100 dark:bg-neutral-800 rounded-xl p-8 text-center"
-        >
-          <p className="text-gray-600 dark:text-gray-400 text-lg">
-            No matches found.
-          </p>
-        </motion.div>
-      )}
+                {/* Highlights Section */}
+                {match.youtube_id && (
+                  <motion.button
+                    onClick={() => setShowHighlights(prev => ({
+                      ...prev,
+                      [match.match_id]: !prev[match.match_id]
+                    }))}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200 font-medium shadow-lg"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <FaVideo />
+                    <span>{showHighlights[match.match_id] ? 'Hide Highlights' : 'Watch Highlights'}</span>
+                  </motion.button>
+                )}
+                
+                {match.youtube_id && showHighlights[match.match_id] && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-3"
+                  >
+                    <LitePlayer youtubeId={match.youtube_id} />
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+            );
+          })}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="no-matches"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded-xl p-12 text-center"
+          >
+            <div className="space-y-4">
+              <div className="text-6xl mb-4">⚽</div>
+              <h3 className="text-2xl font-heading font-bold text-white mb-2">
+                {selectedClub 
+                  ? `No matches found for ${selectedClub}` 
+                  : 'No matches found'}
+              </h3>
+              <p className="text-gray-400">
+                {selectedClub 
+                  ? 'Try selecting a different club or clear the filter to see all matches.'
+                  : 'There are no matches available at the moment.'}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
