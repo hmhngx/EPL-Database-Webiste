@@ -40,6 +40,7 @@ router.get('/', async (req, res, next) => {
         p.jersey_number,
         t.team_id,
         t.team_name,
+        t.logo_url,
         CASE 
           WHEN t.captain_id IS NOT NULL AND t.captain_id = p.id THEN true
           ELSE false 
@@ -103,6 +104,7 @@ router.get('/', async (req, res, next) => {
             p.jersey_number,
             t.team_id,
             t.team_name,
+            t.logo_url,
             false AS is_captain
           FROM players p
           INNER JOIN team t ON p.team_id = t.team_id
@@ -146,10 +148,11 @@ router.get('/', async (req, res, next) => {
       console.warn(`⚠ Players query took ${duration}ms (target: <200ms)`);
     }
 
-    // Add team logo URLs and ensure is_captain is boolean
+    // Use logo_url from database if available, otherwise fallback to ui-avatars
+    // Ensure is_captain is boolean
     const players = result.rows.map(player => ({
       ...player,
-      team_logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(player.team_name)}&background=38003C&color=fff`,
+      team_logo: player.logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(player.team_name)}&background=38003C&color=fff&size=128`,
       is_captain: player.is_captain === true || player.is_captain === 'true' || player.is_captain === 1
     }));
 

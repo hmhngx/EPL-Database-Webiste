@@ -13,6 +13,7 @@ import standingsRouter from './routes/standings.js';
 import clubsRouter from './routes/clubs.js';
 import matchesRouter from './routes/matches.js';
 import playersRouter from './routes/players.js';
+import analyticsRouter from './routes/analytics.js';
 
 // Load environment variables from project root
 const __filename = fileURLToPath(import.meta.url);
@@ -257,6 +258,7 @@ app.use('/api/standings', standingsRouter);
 app.use('/api/clubs', clubsRouter);
 app.use('/api/matches', matchesRouter);
 app.use('/api/players', playersRouter);
+app.use('/api/analytics', analyticsRouter);
 
 // ============================================
 // Error Handling Middleware

@@ -32,6 +32,7 @@ router.get('/', async (req, res, next) => {
         t.team_id,
         t.team_name,
         t.founded_year,
+        t.logo_url,
         s.id AS stadium_id,
         s.stadium_name,
         s.capacity AS stadium_capacity
@@ -47,10 +48,10 @@ router.get('/', async (req, res, next) => {
       console.warn(`⚠ Clubs list query took ${duration}ms (target: <200ms)`);
     }
 
-    // Generate logo_url for each team
+    // Use logo_url from database if available, otherwise fallback to ui-avatars
     const teams = result.rows.map(team => ({
       ...team,
-      logo_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(team.team_name)}&background=38003C&color=fff&size=128`
+      logo_url: team.logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(team.team_name)}&background=38003C&color=fff&size=128`
     }));
 
     res.json({
@@ -92,6 +93,7 @@ router.get('/:id', async (req, res, next) => {
         t.team_id,
         t.team_name,
         t.founded_year,
+        t.logo_url,
         s.id AS stadium_id,
         s.stadium_name,
         s.capacity AS stadium_capacity,
@@ -114,34 +116,35 @@ router.get('/:id', async (req, res, next) => {
 
     // Try to add manager info if tables exist
     try {
-      const managerQuery = `
-        SELECT DISTINCT ON (t.team_id)
-          t.team_id,
-          t.team_name,
-          t.founded_year,
-          s.id AS stadium_id,
-          s.stadium_name,
-          s.capacity AS stadium_capacity,
-          cap.player_name AS captain_name,
-          mgr.manager_name AS manager_name,
-          (
-            SELECT COUNT(*) 
-            FROM players p 
-            WHERE p.team_id = t.team_id
-          ) AS player_count,
-          (
-            SELECT COUNT(*) 
-            FROM matches m 
-            WHERE m.home_team_id = t.team_id OR m.away_team_id = t.team_id
-          ) AS match_count
-        FROM team t
-        INNER JOIN stadiums s ON t.stadium_id = s.id
-        LEFT JOIN players cap ON t.captain_id = cap.id
-        LEFT JOIN managing mg ON mg.team_id = t.team_id
-        LEFT JOIN managers mgr ON mg.manager_id = mgr.id
-        WHERE t.team_id = $1
-        ORDER BY t.team_id, mg.season_start DESC NULLS LAST
-      `;
+        const managerQuery = `
+          SELECT DISTINCT ON (t.team_id)
+            t.team_id,
+            t.team_name,
+            t.founded_year,
+            t.logo_url,
+            s.id AS stadium_id,
+            s.stadium_name,
+            s.capacity AS stadium_capacity,
+            cap.player_name AS captain_name,
+            mgr.manager_name AS manager_name,
+            (
+              SELECT COUNT(*) 
+              FROM players p 
+              WHERE p.team_id = t.team_id
+            ) AS player_count,
+            (
+              SELECT COUNT(*) 
+              FROM matches m 
+              WHERE m.home_team_id = t.team_id OR m.away_team_id = t.team_id
+            ) AS match_count
+          FROM team t
+          INNER JOIN stadiums s ON t.stadium_id = s.id
+          LEFT JOIN players cap ON t.captain_id = cap.id
+          LEFT JOIN managing mg ON mg.team_id = t.team_id
+          LEFT JOIN managers mgr ON mg.manager_id = mgr.id
+          WHERE t.team_id = $1
+          ORDER BY t.team_id, mg.season_start DESC NULLS LAST
+        `;
       // Test if managing table exists by checking information_schema
       const tableCheck = await pool.query(`
         SELECT EXISTS (
@@ -165,6 +168,7 @@ router.get('/:id', async (req, res, next) => {
             t.team_id,
             t.team_name,
             t.founded_year,
+            t.logo_url,
             s.id AS stadium_id,
             s.stadium_name,
             s.capacity AS stadium_capacity,
@@ -209,11 +213,11 @@ router.get('/:id', async (req, res, next) => {
       console.warn(`⚠ Team details query took ${duration}ms (target: <200ms)`);
     }
 
-    // Generate logo_url for the team
+    // Use logo_url from database if available, otherwise fallback to ui-avatars
     const team = result.rows[0];
     const teamData = {
       ...team,
-      logo_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(team.team_name)}&background=38003C&color=fff&size=128`
+      logo_url: team.logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(team.team_name)}&background=38003C&color=fff&size=128`
     };
 
     // Debug: Log manager_name if present
@@ -493,10 +497,12 @@ router.get('/:id/stats', async (req, res, next) => {
     const duration = Date.now() - startTime;
 
     // Calculate aggregates for tooltips and add logos
+    // Note: Logo URLs should come from team table via JOIN in the query above
+    // For now, fallback to ui-avatars if not available
     const matches = result.rows.map(match => ({
       ...match,
-      home_logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(match.home_team_name)}&background=38003C&color=fff&size=128`,
-      away_logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(match.away_team_name)}&background=38003C&color=fff&size=128`
+      home_logo: match.home_logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(match.home_team_name)}&background=38003C&color=fff&size=128`,
+      away_logo: match.away_logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(match.away_team_name)}&background=38003C&color=fff&size=128`
     }));
     
     const aggregates = matches.length > 0 ? {

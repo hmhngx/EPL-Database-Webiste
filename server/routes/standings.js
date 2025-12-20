@@ -26,18 +26,24 @@ router.get('/', async (req, res, next) => {
   try {
     const query = `
       SELECT 
-        team_id,
-        team_name,
-        mp,
-        w,
-        d,
-        l,
-        gf,
-        ga,
-        gd,
-        pts
-      FROM league_standings
-      ORDER BY pts DESC, gd DESC
+        ls.team_id,
+        ls.team_name,
+        ls.mp,
+        ls.w,
+        ls.d,
+        ls.l,
+        ls.gf,
+        ls.ga,
+        ls.gd,
+        ls.pts,
+        COALESCE(SUM(pa.adjustment), 0) AS total_adjustment,
+        (ls.pts + COALESCE(SUM(pa.adjustment), 0)) AS adjusted_pts,
+        t.logo_url
+      FROM league_standings ls
+      LEFT JOIN team t ON ls.team_id = t.team_id
+      LEFT JOIN point_adjustments pa ON ls.team_id = pa.team_id
+      GROUP BY ls.team_id, ls.team_name, ls.mp, ls.w, ls.d, ls.l, ls.gf, ls.ga, ls.gd, ls.pts, t.logo_url
+      ORDER BY adjusted_pts DESC, ls.gd DESC
     `;
 
     const result = await pool.query(query);
@@ -48,9 +54,11 @@ router.get('/', async (req, res, next) => {
       console.warn(`⚠ Standings query took ${duration}ms (target: <200ms)`);
     }
 
-    // Add logo_url for each team (generate if not present in database)
+    // Use logo_url from database if available, otherwise fallback to ui-avatars
+    // Use adjusted_pts as the final points value
     const standings = result.rows.map(team => ({
       ...team,
+      pts: team.adjusted_pts, // Use adjusted points as the final points value
       logo_url: team.logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(team.team_name)}&background=38003C&color=fff&size=128`
     }));
 

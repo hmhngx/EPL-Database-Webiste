@@ -63,14 +63,17 @@ router.get('/', async (req, res, next) => {
         m.matchweek,
         m.home_team_score,
         m.away_team_score,
+        m.youtube_id,
         CASE 
           WHEN m.attendance IS NOT NULL THEN CAST(REPLACE(m.attendance::TEXT, ',', '') AS INTEGER)
           ELSE NULL
         END AS attendance,
         h.team_id AS home_team_id,
         h.team_name AS home_team,
+        h.logo_url AS home_logo_url,
         a.team_id AS away_team_id,
         a.team_name AS away_team,
+        a.logo_url AS away_logo_url,
         s.stadium_name,
         s.capacity AS stadium_capacity,
         -- Pre-calculate result for home team
@@ -209,11 +212,11 @@ router.get('/', async (req, res, next) => {
     );
     const duration = Date.now() - startTime;
 
-    // Add logo URLs for teams
+    // Use logo URLs from database if available, otherwise fallback to ui-avatars
     const matches = queryResult.rows.map(match => ({
       ...match,
-      home_logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(match.home_team)}&background=38003C&color=fff&size=128`,
-      away_logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(match.away_team)}&background=38003C&color=fff&size=128`
+      home_logo: match.home_logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(match.home_team)}&background=38003C&color=fff&size=128`,
+      away_logo: match.away_logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(match.away_team)}&background=38003C&color=fff&size=128`
     }));
 
     // Build response
@@ -326,14 +329,17 @@ router.get('/:id', async (req, res, next) => {
         m.date,
         m.home_team_score,
         m.away_team_score,
+        m.youtube_id,
         CASE 
           WHEN m.attendance IS NOT NULL THEN CAST(REPLACE(m.attendance::TEXT, ',', '') AS INTEGER)
           ELSE NULL
         END AS attendance,
         h.team_id AS home_team_id,
         h.team_name AS home_team,
+        h.logo_url AS home_logo_url,
         a.team_id AS away_team_id,
         a.team_name AS away_team,
+        a.logo_url AS away_logo_url,
         s.stadium_name,
         s.capacity AS stadium_capacity
       FROM matches m
@@ -357,12 +363,12 @@ router.get('/:id', async (req, res, next) => {
       console.warn(`⚠ Match details query took ${duration}ms (target: <200ms)`);
     }
 
-    // Add logo URLs for teams
+    // Use logo URLs from database if available, otherwise fallback to ui-avatars
     const match = result.rows[0];
     const matchData = {
       ...match,
-      home_logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(match.home_team)}&background=38003C&color=fff&size=128`,
-      away_logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(match.away_team)}&background=38003C&color=fff&size=128`
+      home_logo: match.home_logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(match.home_team)}&background=38003C&color=fff&size=128`,
+      away_logo: match.away_logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(match.away_team)}&background=38003C&color=fff&size=128`
     };
 
     res.json({
