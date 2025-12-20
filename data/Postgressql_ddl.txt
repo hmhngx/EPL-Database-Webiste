@@ -1,0 +1,320 @@
+# SQL Definition of club_analytics_timeseries
+create view public.club_analytics_timeseries as
+with
+  pointsbymatchweek as (
+    select
+      matches.matchweek,
+      matches.home_team_id as team_id,
+      matches.away_team_id as opponent_id,
+      matches.home_team_score as goals_scored,
+      matches.away_team_score as goals_conceded,
+      case
+        when matches.home_team_score > matches.away_team_score then 'W'::text
+        when matches.home_team_score = matches.away_team_score then 'D'::text
+        else 'L'::text
+      end as result,
+      case
+        when matches.home_team_score > matches.away_team_score then 3
+        when matches.home_team_score = matches.away_team_score then 1
+        else 0
+      end as points_earned,
+      'Home'::text as venue
+    from
+      matches
+    union all
+    select
+      matches.matchweek,
+      matches.away_team_id as team_id,
+      matches.home_team_id as opponent_id,
+      matches.away_team_score as goals_scored,
+      matches.home_team_score as goals_conceded,
+      case
+        when matches.away_team_score > matches.home_team_score then 'W'::text
+        when matches.away_team_score = matches.home_team_score then 'D'::text
+        else 'L'::text
+      end as result,
+      case
+        when matches.away_team_score > matches.home_team_score then 3
+        when matches.away_team_score = matches.home_team_score then 1
+        else 0
+      end as points_earned,
+      'Away'::text as venue
+    from
+      matches
+  ),
+  cumulativestats as (
+    select
+      p.matchweek,
+      p.team_id,
+      p.opponent_id,
+      p.goals_scored,
+      p.goals_conceded,
+      p.result,
+      p.points_earned,
+      p.venue,
+      sum(p.points_earned) over (
+        partition by
+          p.team_id
+        order by
+          p.matchweek
+      ) as cumulative_points_raw,
+      sum(p.goals_scored - p.goals_conceded) over (
+        partition by
+          p.team_id
+        order by
+          p.matchweek
+      ) as cumulative_gd,
+      sum(p.goals_scored) over (
+        partition by
+          p.team_id
+        order by
+          p.matchweek
+      ) as cumulative_gf,
+      sum(p.goals_conceded) over (
+        partition by
+          p.team_id
+        order by
+          p.matchweek
+      ) as cumulative_ga
+    from
+      pointsbymatchweek p
+  ),
+  adjustments as (
+    select
+      point_adjustments.team_id,
+      point_adjustments.matchweek,
+      sum(point_adjustments.adjustment) over (
+        partition by
+          point_adjustments.team_id
+        order by
+          point_adjustments.matchweek
+      ) as cumulative_adjustment
+    from
+      point_adjustments
+  ),
+  finalstats as (
+    select
+      c.matchweek,
+      c.team_id,
+      c.opponent_id,
+      c.goals_scored,
+      c.goals_conceded,
+      c.result,
+      c.points_earned,
+      c.venue,
+      c.cumulative_points_raw,
+      c.cumulative_gd,
+      c.cumulative_gf,
+      c.cumulative_ga,
+      c.cumulative_points_raw + COALESCE(a.cumulative_adjustment, 0::bigint) as cumulative_points
+    from
+      cumulativestats c
+      left join adjustments a on c.team_id = a.team_id
+      and c.matchweek = a.matchweek
+  )
+select
+  matchweek,
+  team_id,
+  opponent_id,
+  goals_scored,
+  goals_conceded,
+  result,
+  points_earned,
+  venue,
+  cumulative_points_raw,
+  cumulative_gd,
+  cumulative_gf,
+  cumulative_ga,
+  cumulative_points,
+  rank() over (
+    partition by
+      matchweek
+    order by
+      cumulative_points desc,
+      cumulative_gd desc,
+      cumulative_gf desc
+  ) as "position"
+from
+  finalstats f;
+
+# SQL Definition of league_standings
+create view public.league_standings as
+select
+  t.team_id,
+  t.team_name,
+  count(m.id) as mp,
+  sum(
+    case
+      when m.home_team_id = t.team_id
+      and m.home_team_score > m.away_team_score
+      or m.away_team_id = t.team_id
+      and m.away_team_score > m.home_team_score then 1
+      else 0
+    end
+  ) as w,
+  sum(
+    case
+      when m.home_team_score = m.away_team_score then 1
+      else 0
+    end
+  ) as d,
+  sum(
+    case
+      when m.home_team_id = t.team_id
+      and m.home_team_score < m.away_team_score
+      or m.away_team_id = t.team_id
+      and m.away_team_score < m.home_team_score then 1
+      else 0
+    end
+  ) as l,
+  sum(
+    case
+      when m.home_team_id = t.team_id then m.home_team_score
+      else m.away_team_score
+    end
+  ) as gf,
+  sum(
+    case
+      when m.home_team_id = t.team_id then m.away_team_score
+      else m.home_team_score
+    end
+  ) as ga,
+  sum(
+    case
+      when m.home_team_id = t.team_id then m.home_team_score - m.away_team_score
+      else m.away_team_score - m.home_team_score
+    end
+  ) as gd,
+  sum(
+    case
+      when m.home_team_id = t.team_id
+      and m.home_team_score > m.away_team_score
+      or m.away_team_id = t.team_id
+      and m.away_team_score > m.home_team_score then 3
+      when m.home_team_score = m.away_team_score then 1
+      else 0
+    end
+  ) as pts
+from
+  team t
+  join matches m on t.team_id = m.home_team_id
+  or t.team_id = m.away_team_id
+group by
+  t.team_id,
+  t.team_name
+order by
+  (
+    sum(
+      case
+        when m.home_team_id = t.team_id
+        and m.home_team_score > m.away_team_score
+        or m.away_team_id = t.team_id
+        and m.away_team_score > m.home_team_score then 3
+        when m.home_team_score = m.away_team_score then 1
+        else 0
+      end
+    )
+  ) desc,
+  (
+    sum(
+      case
+        when m.home_team_id = t.team_id then m.home_team_score - m.away_team_score
+        else m.away_team_score - m.home_team_score
+      end
+    )
+  ) desc,
+  (
+    sum(
+      case
+        when m.home_team_id = t.team_id then m.home_team_score
+        else m.away_team_score
+      end
+    )
+  ) desc;
+
+# SQL Definition of managers
+create table public.managers (
+  id integer generated by default as identity not null,
+  manager_name character varying(100) not null,
+  constraint managers_pkey primary key (id),
+  constraint managers_id_key unique (id)
+) TABLESPACE pg_default;
+
+# SQL Definition of managing
+create table public.managing (
+  manager_id integer not null,
+  team_id integer not null,
+  season_start date not null,
+  season_end date not null,
+  constraint managing_pkey primary key (manager_id, team_id),
+  constraint managing_manager_id_fkey foreign KEY (manager_id) references managers (id) on update CASCADE on delete RESTRICT,
+  constraint managing_team_id_fkey foreign KEY (team_id) references team (team_id) on update CASCADE on delete RESTRICT
+) TABLESPACE pg_default;
+
+# SQL Definition of matches
+create table public.matches (
+  id serial not null,
+  date date not null,
+  matchweek integer not null,
+  home_team_id integer not null,
+  away_team_id integer not null,
+  home_team_score integer not null,
+  away_team_score integer not null,
+  attendance text null,
+  youtube_id text null,
+  constraint matches_pkey primary key (id),
+  constraint matches_away_team_id_fkey foreign KEY (away_team_id) references team (team_id) on update CASCADE on delete RESTRICT,
+  constraint matches_home_team_id_fkey foreign KEY (home_team_id) references team (team_id) on update CASCADE on delete RESTRICT
+) TABLESPACE pg_default;
+
+# SQL Definition of players
+create table public.players (
+  id serial not null,
+  player_name character varying(100) not null,
+  team_id integer not null,
+  age integer null,
+  position character varying(50) null,
+  nationality character varying(50) null,
+  height integer null,
+  weight integer null,
+  jersey_number integer null,
+  constraint players_pkey primary key (id),
+  constraint players_team_id_fkey foreign KEY (team_id) references team (team_id) on update CASCADE on delete RESTRICT
+) TABLESPACE pg_default;
+
+# SQL Definition of point_adjustments
+create table public.point_adjustments (
+  team_id integer not null,
+  matchweek integer not null,
+  adjustment integer not null,
+  reason text null default 'PSR Breach'::text,
+  date_applied date null,
+  constraint point_adjustments_pkey primary key (team_id, matchweek),
+  constraint point_adjustments_team_id_fkey foreign KEY (team_id) references team (team_id) on update CASCADE on delete RESTRICT
+) TABLESPACE pg_default;
+
+create index IF not exists idx_point_adjustments_team on public.point_adjustments using btree (team_id) TABLESPACE pg_default;
+
+# SQL Definition of stadiums
+create table public.stadiums (
+  id serial not null,
+  stadium_name character varying(100) not null,
+  location character varying(100) not null,
+  capacity character varying(50) null,
+  constraint stadiums_pkey primary key (id)
+) TABLESPACE pg_default;
+
+# SQL Definition of team
+create table public.team (
+  team_id serial not null,
+  team_name character varying(100) not null,
+  founded_year integer null,
+  stadium_id integer not null,
+  captain_id integer not null,
+  logo_url text null,
+  constraint team_pkey primary key (team_id),
+  constraint team_captain_id_key unique (captain_id),
+  constraint team_team_name_key unique (team_name),
+  constraint team_captain_id_fkey foreign KEY (captain_id) references players (id) on update CASCADE on delete RESTRICT,
+  constraint team_stadium_id_fkey foreign KEY (stadium_id) references stadiums (id) on update CASCADE on delete RESTRICT
+) TABLESPACE pg_default;

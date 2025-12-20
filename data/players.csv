@@ -1,0 +1,665 @@
+id,player_name,team_id,age,position,nationality,height,weight,jersey_number
+1,Adrian,11,37,Goalkeeper,Spain,190,80,13
+2,Alisson,11,31,Goalkeeper,Brazil,193,91,1
+3,Caoimhin Kelleher,11,25,Goalkeeper,Ireland,188,74,62
+4,Fabian Mrozek,11,20,Goalkeeper,Poland,192,0,93
+5,Marcelo Pitaluga,11,21,Goalkeeper,Brazil,192,77,45
+6,Vitezslav Jaros,11,22,Goalkeeper,Czech Republic,187,73,56
+7,Andrew Robertson,11,29,Defender,Scotland,178,64,26
+8,Calum Scanlon,11,18,Defender,England,0,0,48
+9,Conor Bradley,11,20,Defender,Northern Ireland,180,64,84
+10,Ibrahima Konate,11,24,Defender,France,194,95,5
+11,Jarell Quansah,11,20,Defender,England,0,0,78
+12,Joe Gomez,11,26,Defender,England,188,77,2
+13,Joel Matip,11,32,Defender,Cameroon,195,90,32
+14,Kostas Tsimikas,11,27,Defender,Greece,179,77,21
+15,Luke Chambers,11,19,Defender,England,0,0,44
+16,Trent Alexander-Arnold,11,25,Defender,England,175,72,66
+17,Virgil van Dijk,11,32,Defender,Netherlands,195,92,4
+18,Alexis Mac Allister,11,25,Midfielder,Argentina,176,69,10
+19,Bobby Clark,11,18,Midfielder,England,178,0,42
+20,Curtis Jones,11,22,Midfielder,England,185,75,17
+21,Dominik Szoboszlai,11,23,Midfielder,Hungary,186,74,8
+22,Harvey Elliott,11,20,Midfielder,England,170,64,19
+23,James McConnell,11,19,Midfielder,England,0,0,53
+24,Ryan Gravenberch,11,21,Midfielder,Netherlands,190,83,38
+25,Stefan Bajcetic,11,19,Midfielder,Spain,185,77,43
+26,Thiago,11,32,Midfielder,Spain,174,70,6
+27,Thomas Hill,11,21,Midfielder,Wales,172,62,83
+28,Treymaurice Nyoni,11,16,Midfielder,England,0,0,98
+29,Wataru Endo,11,30,Midfielder,Japan,178,76,3
+30,Ben Doak,11,18,Forward,Scotland,0,0,50
+31,Cody Gakpo,11,24,Forward,Netherlands,193,76,18
+32,Darwin Nunez,11,24,Forward,Uruguay,187,81,9
+33,Diogo Jota,11,27,Forward,Portugal,178,68,20
+34,Kaide Gordon,11,19,Forward,England,0,0,49
+35,Lewis Koumas,11,18,Forward,Wales,0,0,67
+36,Luis Diaz,11,26,Forward,Colombia,178,65,7
+37,Mohamed Salah,11,31,Forward,Egypt,175,71,11
+38,Emiliano Martinez,2,31,Goalkeeper,Argentina,195,88,1
+39,Filip Marschall,2,20,Goalkeeper,England,195,87,42
+40,Robin Olsen,2,33,Goalkeeper,Sweden,198,89,25
+41,Sam Proctor,2,17,Goalkeeper,England,0,0,78
+42,Alex Moreno,2,30,Defender,Spain,179,68,15
+43,Calum Chambers,2,28,Defender,England,182,66,16
+44,Clement Lenglet,2,28,Defender,France,186,81,17
+45,Diego Carlos,2,30,Defender,Brazil,186,79,3
+46,Ezri Konsa,2,26,Defender,England,183,77,4
+47,Josh Feeney,2,18,Defender,England,193,0,59
+48,Kortney Hause,2,28,Defender,England,191,77,30
+49,Lucas Digne,2,30,Defender,France,178,74,12
+50,Matty Cash,2,26,Defender,Poland,185,79,2
+51,Pau Torres,2,26,Defender,Spain,191,80,14
+52,Tyrone Mings,2,30,Defender,England,196,77,5
+53,Bertrand Traore,2,28,Midfielder,Burkina Faso,181,73,9
+54,Boubacar Kamara,2,24,Midfielder,France,184,68,44
+55,Douglas Luiz,2,25,Midfielder,Brazil,175,66,6
+56,Emiliano Buendia,2,27,Midfielder,Argentina,172,72,10
+57,Jacob Ramsey,2,22,Midfielder,England,180,0,41
+58,John McGinn,2,29,Midfielder,Scotland,178,68,7
+59,Leander Dendoncker,2,28,Midfielder,Belgium,188,83,32
+60,Leon Bailey,2,26,Midfielder,Jamaica,178,77,31
+61,Nicolo Zaniolo,2,24,Midfielder,Italy,190,79,22
+62,Omari Kellyman,2,18,Midfielder,England,0,0,71
+63,Tim Iroegbunam,2,20,Midfielder,England,183,0,47
+64,Tommi O'Reilly,2,20,Midfielder,England,170,0,58
+65,Travis Patterson,2,18,Midfielder,England,0,0,66
+66,Youri Tielemans,2,26,Midfielder,Belgium,176,72,8
+67,Caleb Chukwuemeka,2,21,Forward,England,190,0,0
+68,Jhon Duran,2,20,Forward,Colombia,185,73,24
+69,Kadan Young,2,17,Forward,England,176,0,72
+70,Moussa Diaby,2,24,Forward,France,170,68,19
+71,Ollie Watkins,2,28,Forward,England,180,70,11
+72,Ederson,13,30,Goalkeeper,Brazil,188,86,31
+73,Scott Carson,13,38,Goalkeeper,England,188,85,33
+74,Stefan Ortega,13,31,Goalkeeper,Germany,185,88,18
+75,True Grant,13,18,Goalkeeper,England,0,0,0
+76,Zack Steffen,13,28,Goalkeeper,United States of America,191,86,13
+77,John Stones,13,29,Defender,England,188,80,5
+78,Josko Gvardiol,13,21,Defender,Croatia,185,80,24
+79,Kyle Walker,13,33,Defender,England,178,80,2
+80,Manuel Akanji,13,28,Defender,Switzerland,186,91,25
+81,Max Alleyne,13,18,Defender,England,0,0,0
+82,Nathan Ake,13,28,Defender,Netherlands,180,75,6
+83,Rico Lewis,13,19,Defender,England,169,0,82
+84,Ruben Dias,13,26,Defender,Portugal,186,76,3
+85,Bernardo Silva,13,29,Midfielder,Portugal,173,64,20
+86,Jack Grealish,13,28,Midfielder,England,175,76,10
+87,Kalvin Phillips,13,28,Midfielder,England,178,72,0
+88,Kevin De Bruyne,13,32,Midfielder,Belgium,181,68,17
+89,Mahamadou Susoho,13,18,Midfielder,Spain,175,0,17
+90,Mateo Kovacic,13,29,Midfielder,Croatia,177,78,8
+91,Matheus Nunes,13,25,Midfielder,Portugal,184,78,27
+92,Micah Hamilton,13,20,Midfielder,England,0,0,0
+93,Oscar Bobb,13,20,Midfielder,Norway,174,0,52
+94,Phil Foden,13,23,Midfielder,England,171,70,47
+95,Rodri,13,27,Midfielder,Spain,190,82,16
+96,Sergio Gomez,13,23,Midfielder,Spain,171,68,21
+97,Erling Haaland,13,23,Forward,Norway,194,88,9
+98,Julian Alvarez,13,23,Forward,Argentina,170,71,19
+99,Jeremy Doku,13,21,Forward,Belgium,173,66,11
+100,Aaron Ramsdale,1,25,Goalkeeper,England,188,88,1
+101,David Raya,1,28,Goalkeeper,Spain,183,80,22
+102,Karl Hein,1,21,Goalkeeper,Estonia,193,86,31
+103,Ben White,1,26,Defender,England,186,76,4
+104,Cedric Soares,1,32,Defender,Portugal,172,67,17
+105,Gabriel,1,26,Defender,Brazil,190,78,6
+106,Jakub Kiwior,1,23,Defender,Poland,189,75,15
+107,James Sweet,1,20,Defender,Wales,0,0,0
+108,Jurrien Timber,1,22,Defender,Netherlands,179,79,12
+109,Lino Sousa,1,18,Defender,England,185,0,72
+110,Olexandr Zinchenko,1,27,Defender,Ukraine,175,64,35
+111,Reuell Walters,1,19,Defender,England,183,0,97
+112,Takehiro Tomiyasu,1,25,Defender,Japan,187,84,18
+113,William Saliba,1,22,Defender,France,192,92,2
+114,Amario Cozier-Duberry,1,18,Midfielder,England,0,0,85
+115,Bradley Ibrahim,1,19,Midfielder,England,0,0,55
+116,Declan Rice,1,24,Midfielder,England,185,84,41
+117,Elneny Mohamed,1,31,Midfielder,Egypt,179,72,25
+118,Emile Smith Rowe,1,23,Midfielder,England,182,79,10
+119,Ethan Nwaneri,1,16,Midfielder,England,165,0,63
+120,Fabio Vieira,1,23,Midfielder,Portugal,170,58,21
+121,Jorginho,1,32,Midfielder,Italy,180,65,20
+122,Kai Havertz,1,24,Midfielder,Germany,193,83,29
+123,Martin Odegaard,1,25,Midfielder,Norway,178,68,8
+124,Myles Lewis-Skelly,1,17,Midfielder,England,178,0,59
+125,Thomas Partey,1,30,Midfielder,Ghana,185,77,5
+126,Bukayo Saka,1,22,Forward,England,178,72,7
+127,Charles Sagoe,1,19,Forward,England,0,0,71
+128,Eddie Nketiah,1,24,Forward,England,175,72,14
+129,Gabriel Jesus,1,26,Forward,Brazil,175,73,9
+130,Gabriel Martinelli,1,22,Forward,Brazil,178,75,11
+131,Leandro Trossard,1,29,Forward,Belgium,172,61,19
+132,Reiss Nelson,1,24,Forward,England,175,71,24
+133,Alfie Whiteman,18,25,Goalkeeper,England,189,84,41
+134,Brandon Austin,18,24,Goalkeeper,England,188,82,40
+135,Fraser Forster,18,35,Goalkeeper,England,201,93,20
+136,Guglielmo Vicario,18,27,Goalkeeper,Italy,194,83,13
+137,Hugo Lloris,18,37,Goalkeeper,France,188,82,1
+138,Alfie Dorrington,18,18,Defender,England,0,0,0
+139,Ashley Phillips,18,18,Defender,England,192,0,35
+140,Ben Davies,18,30,Defender,Wales,181,77,33
+141,Cristian Romero,18,25,Defender,Argentina,185,79,17
+142,Destiny Udogie,18,21,Defender,Italy,186,67,38
+143,Emerson Royal,18,24,Defender,Brazil,181,79,12
+144,Eric Dier,18,29,Defender,England,188,83,15
+145,Micky van de Ven,18,22,Defender,Netherlands,193,81,37
+146,Pedro Porro,18,24,Defender,Spain,173,69,23
+147,Dejan Kulusevski,18,23,Midfielder,Sweden,186,80,21
+148,Giovani Lo Celso,18,27,Midfielder,Argentina,177,68,18
+149,Ivan Perisic,18,34,Midfielder,Croatia,186,80,14
+150,James Maddison,18,27,Midfielder,England,175,73,10
+151,Oliver Skipp,18,23,Midfielder,England,175,70,4
+152,Pape Matar Sarr,18,21,Midfielder,Senegal,185,70,29
+153,Pierre-Emile Hojbjerg,18,28,Midfielder,Denmark,187,84,5
+154,Rodrigo Bentancur,18,26,Midfielder,Uruguay,187,72,30
+155,Ryan Sessegnon,18,23,Midfielder,England,178,70,19
+156,Yago Santiago,18,20,Midfielder,Spain,180,0,0
+157,Yves Bissouma,18,27,Midfielder,Mali,182,80,8
+158,Alejo Veliz,18,20,Forward,Argentina,186,77,36
+159,Brennan Johnson,18,22,Forward,Wales,186,73,22
+160,Bryan Gil,18,22,Forward,Spain,175,60,11
+161,Dane Scarlett,18,19,Forward,England,180,76,0
+162,Jamie Donley,18,19,Forward,England,0,0,0
+163,Manor Solomon,18,24,Forward,Israel,170,66,72
+164,Richarlison,18,26,Forward,Brazil,184,83,9
+165,Son Heung-min,18,31,Forward,"Korea, South",184,77,7
+166,Alphonse Areola,19,30,Goalkeeper,France,195,94,23
+167,Joseph Anang,19,23,Goalkeeper,England,190,72,0
+168,Lukasz Fabianski,19,38,Goalkeeper,Poland,190,83,1
+169,Aaron Cresswell,19,34,Defender,England,170,66,3
+170,Angelo Ogbonna,19,35,Defender,Italy,191,86,21
+171,Ben Johnson,19,23,Defender,England,175,67,31
+172,Egor Spiridonov,19,23,Defender,Russian Federation,178,67,0
+173,Emerson,19,29,Defender,Italy,176,63,33
+174,Kaelan Casey,19,19,Defender,England,0,0,0
+175,Konstantinos Mavropanos,19,26,Defender,Greece,194,94,15
+176,Kurt Zouma,19,29,Defender,France,190,96,4
+177,Levi Laing,19,20,Defender,England,0,0,0
+178,Nayef Aguerd,19,27,Defender,Morocco,190,76,27
+179,Oliver Scarles,19,18,Defender,England,0,0,0
+180,Vladimir Coufal,19,31,Defender,Czech Republic,179,76,5
+181,Conor Coventry,19,23,Midfielder,Ireland,177,65,0
+182,Dan Chesters,19,21,Midfielder,England,177,68,0
+183,Edson Alvarez,19,26,Midfielder,Mexico,187,73,19
+184,James Ward-Prowse,19,29,Midfielder,England,173,66,7
+185,Lewis Orford,19,17,Midfielder,England,0,0,0
+186,Lucas Paqueta,19,26,Midfielder,Brazil,180,72,10
+187,Mohammed Kudus,19,23,Midfielder,Ghana,177,70,14
+188,Pablo Fornals,19,27,Midfielder,Spain,178,67,8
+189,Tomas Soucek,19,28,Midfielder,Czech Republic,192,86,28
+190,Callum Marshall,19,19,Forward,Northern Ireland,172,0,0
+191,Danny Ings,19,31,Forward,England,178,73,18
+192,Divin Mubama,19,19,Forward,England,182,0,0
+193,Jarrod Bowen,19,27,Forward,England,175,70,20
+194,Maxwel Cornet,19,27,Forward,Côte d'Ivoire,179,69,17
+195,Michail Antonio,19,33,Forward,Jamaica,180,82,9
+196,Said Benrahma,19,28,Forward,Algeria,172,67,22
+197,Bart Verbruggen,5,21,Goalkeeper,Netherlands,193,66,1
+198,Jason Steele,5,33,Goalkeeper,England,188,79,23
+199,Tom McGill,5,23,Goalkeeper,Canada,185,80,38
+200,Adam Webster,5,29,Defender,England,191,75,4
+201,Ben Jackson,5,20,Defender,England,190,0,50
+202,Igor,5,25,Defender,Brazil,185,85,3
+203,Imari Samuels,5,20,Defender,England,0,0,43
+204,Jan van Hecke,5,23,Defender,Netherlands,189,79,29
+205,Joel Veltman,5,31,Defender,Netherlands,184,75,34
+206,Leigh Kavanagh,5,20,Defender,Ireland,0,0,52
+207,Lewis Dunk,5,32,Defender,England,192,88,5
+208,Pervis Estupinan,5,25,Defender,Ecuador,175,73,30
+209,Tariq Lamptey,5,23,Defender,Ghana,163,55,2
+210,Adam Lallana,5,35,Midfielder,England,172,73,14
+211,Billy Gilmour,5,22,Midfielder,Scotland,166,60,11
+212,Carlos Baleba,5,20,Midfielder,Cameroon,179,0,20
+213,Facundo Buonanotte,5,19,Midfielder,Argentina,174,66,40
+214,Jack Hinchy,5,20,Midfielder,England,180,70,45
+215,Jack Hinshelwood,5,18,Midfielder,England,0,0,41
+216,Jakub Moder,5,24,Midfielder,Poland,188,78,15
+217,James Milner,5,38,Midfielder,England,175,70,6
+218,Jensen Weir,5,21,Midfielder,England,186,74,0
+219,Kaoru Mitoma,5,26,Midfielder,Japan,178,73,22
+220,Mahmoud Dahoud,5,28,Midfielder,Germany,178,68,8
+221,Pascal GroB,5,32,Midfielder,Germany,181,78,13
+222,Samy Chouchane,5,20,Midfielder,Tunisia,0,0,48
+223,Solly March,5,29,Midfielder,England,180,88,7
+224,Adrian Mazilu,5,18,Forward,Romania,0,0,0
+225,Ansu Fati,5,21,Forward,Spain,178,66,31
+226,Benicio Baker-Boaitey,5,19,Forward,England,0,0,47
+227,Danny Welbeck,5,33,Forward,England,185,73,18
+228,Evan Ferguson,5,19,Forward,Ireland,183,78,28
+229,Joshua Duffus,5,19,Forward,England,0,0,56
+230,Joao Pedro,5,22,Forward,Brazil,182,70,9
+231,Julio Enciso,5,19,Forward,Paraguay,168,64,10
+232,Luca Barrington,5,19,Forward,England,0,0,53
+233,Mark O’Mahony,5,18,Forward,Ireland,0,0,55
+234,Simon Adingra,5,22,Forward,Côte d'Ivoire,175,68,24
+235,Altay Bayindir,14,25,Goalkeeper,Turkey,198,88,1
+236,Andre Onana,14,27,Goalkeeper,Cameroon,190,93,24
+237,Radek Vitek,14,20,Goalkeeper,Czech Republic,198,0,40
+238,Tom Heaton,14,37,Goalkeeper,England,188,85,22
+239,Aaron Wan-Bissaka,14,26,Defender,England,183,72,29
+240,Diogo Dalot,14,24,Defender,Portugal,183,76,20
+241,Harry Maguire,14,30,Defender,England,194,90,5
+242,Jonny Evans,14,36,Defender,Northern Ireland,188,77,35
+243,Lisandro Martinez,14,25,Defender,Argentina,175,77,6
+244,Luke Shaw,14,28,Defender,England,185,75,23
+245,Raphael Varane,14,30,Defender,France,191,81,19
+246,Rhys Bennett,14,20,Defender,England,0,0,66
+247,Sergio Reguilon,14,27,Defender,Spain,178,68,15
+248,Tyrell Malacia,14,24,Defender,Netherlands,170,67,12
+249,Victor Lindelof,14,29,Defender,Sweden,187,80,2
+250,Willy Kambwala,14,19,Defender,France,0,0,53
+251,Bruno Fernandes,14,29,Midfielder,Portugal,179,69,8
+252,Casemiro,14,31,Midfielder,Brazil,185,84,18
+253,Christian Eriksen,14,31,Midfielder,Denmark,182,76,14
+254,Daniel Gore,14,19,Midfielder,England,0,0,44
+255,Facundo Pellistri,14,22,Midfielder,Uruguay,175,69,28
+256,Hannibal Mejbri,14,20,Midfielder,Tunisia,177,74,46
+257,Kobbie Mainoo,14,18,Midfielder,England,175,0,37
+258,Mason Mount,14,24,Midfielder,England,181,76,7
+259,Omari Forson,14,19,Midfielder,England,0,0,62
+260,Scott McTominay,14,27,Midfielder,Scotland,193,88,39
+261,Sofyan Amrabat,14,27,Midfielder,Morocco,183,70,4
+262,Alejandro Garnacho,14,19,Forward,Argentina,180,80,17
+263,Amad Diallo,14,21,Forward,Côte d'Ivoire,173,72,0
+264,Anthony Martial,14,28,Forward,France,181,76,9
+265,Antony,14,23,Forward,Brazil,174,63,21
+266,Jadon Sancho,14,23,Forward,England,180,76,25
+267,Joe Hugill,14,20,Forward,England,188,0,52
+268,Marcus Rashford,14,26,Forward,England,180,70,10
+269,Rasmus Hojlund,14,20,Forward,Denmark,191,79,11
+270,Shola Shoretire,14,19,Forward,England,170,70,47
+271,Adam Harrison,15,17,Goalkeeper,England,0,0,0
+272,Loris Karius,15,30,Goalkeeper,Germany,189,87,18
+273,Mark Gillespie,15,31,Goalkeeper,England,192,83,0
+274,Martin Dubravka,15,34,Goalkeeper,Slovakia,190,83,1
+275,Nick Pope,15,31,Goalkeeper,England,191,76,22
+276,Alex Murphy,15,19,Defender,Ireland,0,0,0
+277,Daniel Burn,15,31,Defender,England,198,87,33
+278,Emil Krafth,15,29,Defender,Sweden,184,83,0
+279,Fabian Schar,15,32,Defender,Switzerland,186,84,0
+280,Jamaal Lascelles,15,30,Defender,England,188,89,6
+281,Javi Manquillo,15,29,Defender,Spain,178,76,19
+282,Kieran Trippier,15,33,Defender,England,178,71,2
+283,Lewis Hall,15,19,Defender,England,179,73,20
+284,Matt Targett,15,28,Defender,England,183,70,13
+285,Paul Dummett,15,32,Defender,Wales,183,82,0
+286,Sven Botman,15,23,Defender,Netherlands,193,81,4
+287,Tino Livramento,15,21,Defender,England,182,0,21
+288,Bruno Guimaraes,15,26,Midfielder,Brazil,182,74,39
+289,Elliot Anderson,15,21,Midfielder,Scotland,179,0,32
+290,Harvey Barnes,15,26,Midfielder,England,174,66,15
+291,Jacob Murphy,15,28,Midfielder,England,179,74,23
+292,James Huntley,15,19,Midfielder,England,0,0,0
+293,Joe Willock,15,24,Midfielder,England,179,71,28
+294,Lewis Miley,15,17,Midfielder,England,185,0,0
+295,Lucas De Bolle,15,21,Midfielder,Scotland,0,0,0
+296,Matt Ritchie,15,34,Midfielder,Scotland,172,76,11
+297,Miguel Almiron,15,29,Midfielder,Paraguay,174,70,24
+298,Sandro Tonali,15,23,Midfielder,Italy,181,79,8
+299,Sean Longstaff,15,26,Midfielder,England,180,65,36
+300,Alexander Isak,15,24,Forward,Sweden,192,77,14
+301,Amadou Diallo,15,20,Forward,England,0,0,0
+302,Anthony Gordon,15,22,Forward,England,183,72,10
+303,Ben Parkinson,15,18,Forward,England,0,0,0
+304,Callum Wilson,15,31,Forward,England,180,66,9
+305,Joelinton,15,27,Forward,Brazil,186,81,7
+306,Michael Ndiweni,15,20,Forward,England,0,0,69
+307,Djordje Petrovic,7,24,Goalkeeper,Serbia,194,89,28
+308,Eddie Beach,7,20,Goalkeeper,Wales,196,0,0
+309,Lucas Bergstrom,7,21,Goalkeeper,Finland,199,82,0
+310,Marcus Bettinelli,7,31,Goalkeeper,England,194,82,13
+311,Robert Sanchez,7,26,Goalkeeper,Spain,197,90,1
+312,Alfie Gilchrist,7,20,Defender,England,183,0,0
+313,Axel Disasi,7,25,Defender,France,190,83,2
+314,Benjamin Chilwell,7,27,Defender,England,178,77,21
+315,Benoît Badiashile,7,22,Defender,France,194,75,5
+316,Ian Maatsen,7,21,Defender,Netherlands,167,57,0
+317,Ishe Samuels-Smith,7,17,Defender,England,186,0,0
+318,Josh Brooking,7,21,Defender,England,0,0,0
+319,Levi Colwill,7,20,Defender,England,187,83,0
+320,Malang Sarr,7,24,Defender,France,183,73,0
+321,Malo Gusto,7,20,Defender,France,179,67,0
+322,Marc Cucurella,7,25,Defender,Spain,172,66,3
+323,Reece James,7,24,Defender,England,182,82,24
+324,Thiago Silva,7,39,Defender,Brazil,183,79,6
+325,Trevoh Chalobah,7,24,Defender,England,190,75,0
+326,Wesley Fofana,7,23,Defender,France,190,84,33
+327,Andrey Santos,7,19,Midfielder,Brazil,180,75,0
+328,Carney Chukwuemeka,7,20,Midfielder,England,187,77,0
+329,Cole Palmer,7,21,Midfielder,England,182,74,0
+330,Conor Gallagher,7,23,Midfielder,England,182,77,23
+331,Enzo Fernandez,7,22,Midfielder,Argentina,178,76,8
+332,Leo Castledine,7,18,Midfielder,England,0,0,0
+333,Lesley Ugochukwu,7,19,Midfielder,France,188,0,16
+334,Moises Caicedo,7,22,Midfielder,Ecuador,178,73,25
+335,Mykhailo Mudryk,7,23,Midfielder,Ukraine,175,61,10
+336,Romeo Lavia,7,20,Midfielder,Belgium,181,0,6
+337,Alex Matos,7,19,Forward,England,0,0,0
+338,Armando Broja,7,22,Forward,Albania,191,83,0
+339,Christopher Nkunku,7,26,Forward,France,178,68,18
+340,Deivid Washington,7,18,Forward,Brazil,186,73,0
+341,Nicolas Jackson,7,22,Forward,Senegal,186,78,15
+342,Noni Madueke,7,21,Forward,England,176,75,11
+343,Raheem Sterling,7,29,Forward,England,172,69,7
+344,Ronnie Stutter,7,19,Forward,England,0,0,0
+345,Daniel Bentley,20,30,Goalkeeper,England,188,73,25
+346,Jose Sa,20,30,Goalkeeper,Portugal,192,84,1
+347,Tom King,20,28,Goalkeeper,Wales,194,80,40
+348,Craig Dawson,20,33,Defender,England,188,82,15
+349,Hugo Bueno,20,21,Defender,Spain,180,73,17
+350,Jonny Castro,20,29,Defender,Spain,175,70,19
+351,Justin Hubner,20,20,Defender,Indonesia,187,75,67
+352,Matt Doherty,20,31,Defender,Ireland,185,80,2
+353,Max Kilman,20,26,Defender,England,194,89,23
+354,Nelson Semedo,20,30,Defender,Portugal,177,69,22
+355,Rayan Ait-Nouri,20,22,Defender,Algeria,180,70,3
+356,Santiago Bueno,20,25,Defender,Uruguay,190,76,4
+357,Toti,20,24,Defender,Portugal,187,72,24
+358,Yerson Mosquera,20,22,Defender,Colombia,187,76,0
+359,Boubacar Traore,20,22,Midfielder,Mali,183,67,6
+360,Jeanricner Bellegarde,20,25,Midfielder,France,170,70,27
+361,Joe Hodge,20,21,Midfielder,Ireland,172,65,32
+362,Joao Gomes,20,22,Midfielder,Brazil,176,74,8
+363,Mario Lemina,20,30,Midfielder,Gabon,184,85,5
+364,Matthew Whittingham,20,19,Midfielder,England,0,0,65
+365,Owen Hesketh,20,21,Midfielder,Wales,0,0,79
+366,Pablo Sarabia,20,31,Midfielder,Spain,174,70,21
+367,Tawanda Chirewa,20,20,Midfielder,England,0,0,62
+368,Tommy Doyle,20,22,Midfielder,England,172,73,20
+369,Emilio Ballard-Matthews,20,16,Forward,England,0,0,78
+370,Enso Gonzalez,20,18,Forward,Paraguay,169,69,30
+371,Hwang Hee-chan,20,27,Forward,"Korea, South",177,77,11
+372,Matheus Cunha,20,24,Forward,Brazil,183,76,12
+373,Nathan Fraser,20,18,Forward,Ireland,188,82,63
+374,Pedro Neto,20,23,Forward,Portugal,172,62,7
+375,Sasa Kalajdzic,20,26,Forward,Austria,200,90,18
+376,Ty Barnett,20,18,Forward,England,0,0,45
+377,Andrei Radu,3,26,Goalkeeper,Romania,188,70,20
+378,Cameron Plain,3,22,Goalkeeper,England,0,0,45
+379,Darren Randolph,3,36,Goalkeeper,Ireland,188,98,12
+380,Mark Travers,3,24,Goalkeeper,Ireland,191,82,42
+381,Neto,3,34,Goalkeeper,Brazil,190,84,1
+382,Adam Smith,3,32,Defender,England,180,78,15
+383,Ben Greenwood,3,20,Defender,Ireland,170,70,43
+384,Chris Mepham,3,26,Defender,Wales,193,88,6
+385,Illia Zabarnyi,3,21,Defender,Ukraine,189,80,27
+386,Lloyd Kelly,3,25,Defender,England,178,70,5
+387,Marcos Senesi,3,26,Defender,Argentina,185,80,25
+388,Max Aarons,3,24,Defender,England,178,69,37
+389,Milos Kerkez,3,20,Defender,Hungary,180,71,3
+390,Ryan Fredericks,3,31,Defender,England,181,74,2
+391,Alex Scott,3,20,Midfielder,England,178,0,14
+392,David Brooks,3,26,Midfielder,Wales,173,62,7
+393,Emiliano Marcondes,3,28,Midfielder,Denmark,182,75,13
+394,Gavin Kilkenny,3,23,Midfielder,Ireland,170,75,26
+395,Hamed Traore,3,23,Midfielder,Côte d'Ivoire,184,77,22
+396,Joe Rothwell,3,28,Midfielder,England,185,77,8
+397,Lewis Cook,3,26,Midfielder,England,175,71,4
+398,Marcus Tavernier,3,24,Midfielder,England,178,70,16
+399,Philip Billing,3,27,Midfielder,Denmark,193,83,29
+400,Ryan Christie,3,28,Midfielder,Scotland,178,79,10
+401,Tyler Adams,3,24,Midfielder,United States of America,173,72,18
+402,Antoine Semenyo,3,23,Forward,Ghana,185,79,24
+403,Dango Ouattara,3,21,Forward,Burkina Faso,177,71,11
+404,Dominic Solanke,3,26,Forward,England,187,80,9
+405,Justin Kluivert,3,24,Forward,Netherlands,171,67,19
+406,Kieffer Moore,3,31,Forward,Wales,196,89,21
+407,Luis Sinisterra,3,24,Forward,Colombia,172,60,17
+408,Bernd Leno,10,31,Goalkeeper,Germany,189,82,17
+409,Marek Rodak,10,27,Goalkeeper,Slovakia,194,81,1
+410,Steven Benda,10,25,Goalkeeper,Germany,192,83,0
+411,Antonee Robinson,10,26,Defender,United States of America,183,70,33
+412,Calvin Bassey,10,24,Defender,Nigeria,185,76,0
+413,Devan Tanton,10,20,Defender,Colombia,175,0,0
+414,Fode Ballo-Toure,10,27,Defender,Senegal,182,70,12
+415,Issa Diop,10,26,Defender,France,194,92,31
+416,Kenny Tete,10,28,Defender,Netherlands,180,71,2
+417,Luc De Fougerolles,10,18,Defender,Canada,0,0,0
+418,Tim Ream,10,36,Defender,United States of America,183,80,13
+419,Timothy Castagne,10,28,Defender,Belgium,185,80,21
+420,Tosin Adarabioyo,10,26,Defender,England,196,80,4
+421,Andreas Pereira,10,28,Midfielder,Brazil,178,71,18
+422,Harrison Reed,10,28,Midfielder,England,181,72,6
+423,Harry Wilson,10,26,Midfielder,Wales,173,63,8
+424,Joao Palhinha,10,28,Midfielder,Portugal,190,84,26
+425,Luke Harris,10,18,Midfielder,Wales,177,0,0
+426,Matthew Dibley-Dias,10,20,Midfielder,New Zealand,183,0,0
+427,Sasa Lukic,10,27,Midfielder,Serbia,183,76,28
+428,Thomas Cairney,10,32,Midfielder,Scotland,185,84,10
+429,Tyrese Francois,10,23,Midfielder,Australia,173,60,0
+430,Adama Traore,10,27,Forward,Spain,178,86,11
+431,Alex Iwobi,10,27,Forward,Nigeria,180,75,22
+432,Bobby Decordova-Reid,10,30,Forward,Jamaica,170,68,14
+433,Carlos Vinicius,10,28,Forward,Brazil,190,86,30
+434,Raul Jimenez,10,32,Forward,Mexico,190,76,7
+435,Rodrigo Muniz,10,22,Forward,Brazil,178,67,19
+436,Willian,10,35,Forward,Brazil,175,77,20
+437,Dean Henderson,8,26,Goalkeeper,England,188,85,30
+438,Joe Whitworth,8,19,Goalkeeper,England,179,0,41
+439,Remi Matthews,8,29,Goalkeeper,England,184,78,31
+440,Sam Johnstone,8,30,Goalkeeper,England,193,85,1
+441,Chris Richards,8,23,Defender,United States of America,188,87,26
+442,James Tomkins,8,34,Defender,England,192,74,5
+443,Joachim Andersen,8,27,Defender,Denmark,192,90,16
+444,Joel Ward,8,34,Defender,England,188,83,2
+445,Marc Guehi,8,23,Defender,England,182,82,6
+446,Nathan Ferguson,8,23,Defender,England,178,74,36
+447,Nathaniel Clyne,8,32,Defender,England,175,67,17
+448,Rob Holding,8,28,Defender,England,189,81,4
+449,Sean Grehan,8,19,Defender,Ireland,0,0,42
+450,Tayo Adaramola,8,20,Defender,Ireland,0,0,38
+451,Tyrick Mitchell,8,24,Defender,England,175,68,3
+452,Cheick Doucoure,8,23,Midfielder,Mali,180,73,28
+453,David Ozoh,8,18,Midfielder,England,0,0,52
+454,Eberechi Eze,8,25,Midfielder,England,178,74,10
+455,Jack Wells-Morrison,8,19,Midfielder,England,180,0,40
+456,Jadan Raymond,8,20,Midfielder,Wales,0,0,60
+457,Jairo Riedewald,8,27,Midfielder,Netherlands,182,79,44
+458,Jefferson Lerma,8,29,Midfielder,Colombia,179,70,8
+459,Jeffrey Schlupp,8,31,Midfielder,Ghana,178,72,15
+460,Jesurun Rak-Sakyi,8,21,Midfielder,England,178,0,49
+461,Michael Olise,8,22,Midfielder,France,184,76,7
+462,Naouirou Ahamada,8,21,Midfielder,France,183,73,29
+463,Will Hughes,8,28,Midfielder,England,185,74,19
+464,Ademola Ola-Adebomi,8,20,Forward,England,0,0,53
+465,Jean Mateta,8,26,Forward,France,192,88,14
+466,Jordan Ayew,8,32,Forward,Ghana,182,80,9
+467,Malcolm Ebiowei,8,20,Forward,England,185,0,23
+468,Matheus Franca,8,19,Forward,Brazil,178,67,11
+469,Odsonne Edouard,8,25,Forward,France,187,83,22
+470,Ethan Horvath,16,28,Goalkeeper,United States of America,191,84,34
+471,George Shelvey,16,22,Goalkeeper,England,188,83,0
+472,John Lukic,16,37,Goalkeeper,England,188,80,0
+473,Matt Turner,16,29,Goalkeeper,United States of America,191,84,1
+474,Odisseas Vlachodimos,16,29,Goalkeeper,Greece,188,78,23
+475,Wayne Hennessey,16,36,Goalkeeper,Wales,198,90,13
+476,Andrew Omobamidele,16,21,Defender,Ireland,188,0,32
+477,Felipe,16,34,Defender,Brazil,190,83,18
+478,Gonzalo Montiel,16,27,Defender,Argentina,175,68,29
+479,Harry Toffolo,16,28,Defender,England,183,71,15
+480,Joe Worrall,16,26,Defender,England,193,64,4
+481,Moussa Niakhate,16,27,Defender,Senegal,190,82,19
+482,Murillo,16,21,Defender,Brazil,180,75,40
+483,Neco Williams,16,22,Defender,Wales,183,72,7
+484,Nuno Tavares,16,23,Defender,Portugal,183,75,3
+485,Ola Aina,16,27,Defender,Nigeria,184,82,43
+486,Richie Laryea,16,28,Defender,Canada,175,68,0
+487,Scott McKenna,16,27,Defender,Scotland,189,74,26
+488,Serge Aurier,16,31,Defender,Côte d'Ivoire,176,76,24
+489,Willy Boly,16,32,Defender,Côte d'Ivoire,195,92,30
+490,Brandon Aguilera,16,20,Midfielder,Costa Rica,179,60,41
+491,Cheikhou Kouyate,16,34,Midfielder,Senegal,189,83,8
+492,Danilo,16,22,Midfielder,Brazil,176,69,28
+493,Ibrahim Sangare,16,26,Midfielder,Côte d'Ivoire,191,77,6
+494,Morgan Gibbs-White,16,23,Midfielder,England,171,0,10
+495,Nicolas Dominguez,16,25,Midfielder,Argentina,179,73,16
+496,Orel Mangala,16,25,Midfielder,Belgium,178,80,5
+497,Ryan Yates,16,26,Midfielder,England,190,87,22
+498,Anthony Elanga,16,21,Forward,Sweden,178,70,21
+499,Callum Hudson-Odoi,16,23,Forward,England,182,76,14
+500,Christopher Wood,16,32,Forward,New Zealand,191,81,11
+501,Divock Origi,16,28,Forward,Belgium,185,75,27
+502,Taiwo Awoniyi,16,26,Forward,Nigeria,183,84,9
+503,Ellery Balcombe,4,24,Goalkeeper,England,190,92,40
+504,Mark Flekken,4,30,Goalkeeper,Netherlands,195,87,1
+505,Thomas Strakosha,4,28,Goalkeeper,Albania,186,78,21
+506,Vincent Angelini,4,20,Goalkeeper,Scotland,186,0,41
+507,Aaron Hickey,4,21,Defender,Scotland,178,72,2
+508,Ben Mee,4,34,Defender,England,180,74,16
+509,Charlie Goode,4,28,Defender,England,196,89,4
+510,Ethan Pinnock,4,30,Defender,Jamaica,187,79,5
+511,Kim Ji-Soo,4,19,Defender,"Korea, South",192,75,36
+512,Kristoffer Ajer,4,25,Defender,Norway,198,92,20
+513,Mads Roerslev,4,24,Defender,Denmark,184,77,30
+514,Mathias Jorgensen,4,33,Defender,Denmark,191,79,13
+515,Nathan Collins,4,22,Defender,Ireland,193,0,22
+516,Rico Henry,4,26,Defender,England,170,67,3
+517,Valintino Adedokun,4,20,Defender,Ireland,0,0,42
+518,Bryan Mbeumo,4,24,Midfielder,Cameroon,173,64,19
+519,Christian Norgaard,4,29,Midfielder,Denmark,187,77,6
+520,Ethan Brierley,4,20,Midfielder,England,168,0,38
+521,Frank Onyeka,4,26,Midfielder,Nigeria,183,70,15
+522,Josh Dasilva,4,25,Midfielder,England,184,75,10
+523,Kevin Schade,4,22,Midfielder,Germany,183,74,9
+524,Mathias Jensen,4,28,Midfielder,Denmark,180,68,8
+525,Mikkel Damsgaard,4,23,Midfielder,Denmark,180,66,24
+526,Myles Peart-Harris,4,21,Midfielder,England,187,0,25
+527,Shandon Baptiste,4,25,Midfielder,Grenada,175,67,26
+528,Vitaly Janelt,4,25,Midfielder,Germany,184,79,27
+529,Yehor Yarmoliuk,4,19,Midfielder,Ukraine,180,72,33
+530,Yoane Wissa,4,27,Midfielder,Congo (Kinshasa),176,74,11
+531,Ivan Toney,4,27,Forward,England,179,70,17
+532,Keane Lewis-Potter,4,22,Forward,England,170,67,23
+533,Michael Olakigbe,4,19,Forward,England,0,0,37
+534,Neal Maupay,4,27,Forward,France,173,69,7
+535,Saman Ghoddos,4,30,Forward,Iran,175,79,14
+536,Andy Lonergan,9,40,Goalkeeper,England,192,87,31
+537,Billy Crellin,9,23,Goalkeeper,England,185,60,0
+538,Jordan Pickford,9,29,Goalkeeper,England,185,82,1
+539,Joao Virginia,9,24,Goalkeeper,Portugal,193,83,0
+540,Ashley Young,9,38,Defender,England,175,65,18
+541,Ben Godfrey,9,25,Defender,England,183,74,0
+542,Elijah Campbell,9,19,Defender,England,182,63,73
+543,James Tarkowski,9,31,Defender,England,185,81,6
+544,Jarrad Branthwaite,9,21,Defender,England,195,67,32
+545,Michael Keane,9,30,Defender,England,191,82,0
+546,Nathan Patterson,9,22,Defender,Scotland,189,83,2
+547,Seamus Coleman,9,35,Defender,Ireland,177,67,0
+548,Vitaliy Mykolenko,9,24,Defender,Ukraine,180,71,19
+549,Abdoulaye Doucoure,9,31,Midfielder,Mali,184,75,16
+550,Amadou Onana,9,22,Midfielder,Belgium,192,76,8
+551,Andre Gomes,9,30,Midfielder,Portugal,188,84,0
+552,Dele Alli,9,27,Midfielder,England,188,76,20
+553,Idrissa Gueye,9,34,Midfielder,Senegal,174,66,27
+554,Jack Harrison,9,27,Midfielder,England,175,70,0
+555,James Garner,9,22,Midfielder,England,186,78,37
+556,Jenson Metcalfe,9,19,Midfielder,England,0,0,0
+557,Mackenzie Hunt,9,22,Midfielder,England,0,0,58
+558,Tyler Onyango,9,20,Midfielder,England,190,76,0
+559,Arnaut Danjuma,9,26,Forward,Netherlands,178,74,10
+560,Beto,9,25,Forward,Portugal,194,88,14
+561,Dominic Calvert-Lewin,9,26,Forward,England,187,71,9
+562,Dwight McNeil,9,24,Forward,England,183,68,7
+563,Lewis Dobbin,9,21,Forward,England,175,0,61
+564,Youssef Chermiti,9,19,Forward,Portugal,192,84,0
+565,James Shea,12,32,Goalkeeper,England,185,76,1
+566,Thomas Kaminski,12,31,Goalkeeper,Belgium,190,78,24
+567,Tim Krul,12,35,Goalkeeper,Netherlands,188,84,23
+568,Amari Bell,12,29,Defender,Jamaica,180,66,29
+569,Daniel Potts,12,29,Defender,England,172,70,3
+570,Gabriel Osho,12,25,Defender,England,0,0,32
+571,Issa Kabore,12,22,Defender,Burkina Faso,180,77,12
+572,Joe Johnson,12,17,Defender,England,180,0,38
+573,Mads Andersen,12,26,Defender,Denmark,194,81,5
+574,Reece Burke,12,27,Defender,England,188,81,16
+575,Teden Mengi,12,21,Defender,England,183,78,15
+576,Tom Lockyer,12,29,Defender,Wales,185,72,4
+577,Albert Sambi Lokonga,12,24,Midfielder,Belgium,173,67,28
+578,Alfie Doughty,12,24,Midfielder,England,183,0,45
+579,Andros Townsend,12,32,Midfielder,England,181,77,30
+580,Jake Burger,12,19,Midfielder,England,0,0,0
+581,Jayden Luker,12,18,Midfielder,England,0,0,47
+582,Jordan Clark,12,30,Midfielder,England,183,71,18
+583,Luke Berry,12,31,Midfielder,England,177,72,8
+584,Marvelous Nakamba,12,29,Midfielder,Zimbabwe,178,71,13
+585,Pelly Mpanzu,12,29,Midfielder,Congo (Kinshasa),175,63,17
+586,Ross Barkley,12,30,Midfielder,England,189,76,6
+587,Ryan Giles,12,23,Midfielder,England,179,72,26
+588,Tahith Chong,12,24,Midfielder,Netherlands,185,75,14
+589,Zack Nelson,12,18,Midfielder,England,0,0,43
+590,Carlton Morris,12,28,Forward,England,185,85,9
+591,Cauley Woodrow,12,29,Forward,England,184,78,10
+592,Chiedozie Ogbene,12,26,Forward,Ireland,181,78,7
+593,Elijah Adebayo,12,25,Forward,England,193,89,11
+594,Jacob Brown,12,25,Forward,Scotland,178,62,19
+595,Arijanet Muric,6,25,Goalkeeper,Kosovo,198,81,49
+596,Denis Franchi,6,21,Goalkeeper,Italy,189,81,20
+597,James Trafford,6,21,Goalkeeper,England,197,83,1
+598,Lawrence Vigouroux,6,30,Goalkeeper,Chile,194,77,29
+599,Ameen Al Dakhil,6,21,Defender,Belgium,187,70,28
+600,Charlie Taylor,6,30,Defender,England,176,70,3
+601,Connor Roberts,6,28,Defender,Wales,175,72,14
+602,Conrad Egan-Riley,6,21,Defender,England,183,0,6
+603,Dara O'Shea,6,24,Defender,Ireland,188,0,2
+604,Hannes Delcroix,6,24,Defender,Belgium,185,78,44
+605,Hjalmar Ekdal,6,25,Defender,Sweden,188,77,18
+606,Jordan Beyer,6,23,Defender,Germany,187,80,5
+607,Owen Dodgson,6,20,Defender,England,0,0,29
+608,Vitinho,6,24,Defender,Brazil,175,72,22
+609,Aaron Ramsey,6,20,Midfielder,England,181,0,21
+610,Han Massengo,6,22,Midfielder,France,178,0,42
+611,Jack Cork,6,34,Midfielder,England,183,70,4
+612,Josh Brownhill,6,28,Midfielder,England,180,69,8
+613,Joshua Cullen,6,27,Midfielder,Ireland,175,70,24
+614,Johann Gudmundsson,6,33,Midfielder,Iceland,186,78,7
+615,Nathan Redmond,6,29,Midfielder,England,173,69,15
+616,Sander Berge,6,25,Midfielder,Norway,195,96,16
+617,Anass Zaroury,6,23,Forward,Morocco,176,70,19
+618,Benson Manuel,6,26,Forward,Belgium,178,68,10
+619,Darko Churlinov,6,23,Forward,North Macedonia,171,73,27
+620,Enock Agyei,6,18,Forward,Belgium,172,0,48
+621,Jacob Bruun Larsen,6,25,Forward,Denmark,183,77,34
+622,Jay Rodriguez,6,34,Forward,England,185,84,9
+623,Luca Koleosho,6,19,Forward,Italy,175,68,30
+624,Lyle Foster,6,23,Forward,South Africa,185,70,17
+625,Michael Obafemi,6,23,Forward,Ireland,169,71,45
+626,Mike Tresor,6,24,Forward,Belgium,172,64,31
+627,Wilson Odobert,6,19,Forward,France,182,0,47
+628,Zeki Amdouni,6,23,Forward,Switzerland,185,79,25
+629,Adam Davies,17,31,Goalkeeper,Wales,185,75,1
+630,Jordan Amissah,17,22,Goalkeeper,Ghana,197,0,37
+631,Wes Foderingham,17,32,Goalkeeper,England,185,75,18
+632,Anel Ahmedhodzic,17,24,Defender,Bosnia and Herzegovina,195,84,15
+633,Auston Trusty,17,25,Defender,United States of America,191,84,5
+634,Chris Basham,17,35,Defender,England,190,80,6
+635,Ciaran Brennan,17,23,Defender,Ireland,189,0,0
+636,Femi Seriki,17,21,Defender,England,183,0,38
+637,George Baldock,17,30,Defender,Greece,178,71,2
+638,Jack Robinson,17,30,Defender,England,180,67,19
+639,Jayden Bogle,17,23,Defender,England,178,69,20
+640,Jili Buyabu,17,20,Defender,England,182,0,40
+641,John Egan,17,31,Defender,Ireland,185,75,12
+642,Luke Thomas,17,22,Defender,England,181,0,0
+643,Max Lowe,17,26,Defender,England,175,74,3
+644,Rhys Norrington-Davies,17,24,Defender,Wales,181,68,33
+645,Sai Sachdev,17,18,Defender,England,0,0,39
+646,Yasser Larouci,17,23,Defender,Algeria,176,68,27
+647,Andre Brooks,17,20,Midfielder,England,180,0,35
+648,Anis Ben Slimane,17,22,Midfielder,Tunisia,188,86,25
+649,Ben Osborn,17,29,Midfielder,England,176,75,23
+650,Gustavo Hamer,17,26,Midfielder,Netherlands,169,61,8
+651,Ismaila Coulibaly,17,23,Midfielder,Mali,183,68,17
+652,James McAtee,17,21,Midfielder,England,180,0,28
+653,John Fleck,17,32,Midfielder,Scotland,170,72,4
+654,Oliver Norwood,17,32,Midfielder,Northern Ireland,180,75,16
+655,Sydie Peck,17,19,Midfielder,England,173,0,42
+656,Tom Davies,17,25,Midfielder,England,180,70,22
+657,Vinicius Souza,17,24,Midfielder,Brazil,187,80,21
+658,Ben Brereton Diaz,17,24,Forward,Chile,185,80,11
+659,Cameron Archer,17,22,Forward,England,181,72,10
+660,Daniel Jebbison,17,20,Forward,Canada,190,69,36
+661,Oliver McBurnie,17,27,Forward,Scotland,188,79,9
+662,Rhian Brewster,17,23,Forward,England,180,75,7
+663,Ryan One,17,17,Forward,Scotland,0,0,26
+664,William Osula,17,20,Forward,Denmark,180,81,32
