@@ -116,7 +116,7 @@ const CumulativePointsChart = ({ matches, standings, venue, gameweekRange, selec
     plugins: {
       title: {
         display: true,
-        text: 'Cumulative Points Progression (Title Race)',
+        text: 'Cumulative Points Progression',
         font: {
           size: 18,
           weight: 'bold',
