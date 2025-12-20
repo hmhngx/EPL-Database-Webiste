@@ -1,18 +1,16 @@
 -- ============================================
--- Migration: Add Managers, Captains, Gameweek, and Additional Player Fields
+-- Migration: Add Managers, Captains, Gameweek, and Additional Player Fields (CORRECTED)
 -- ============================================
--- This migration adds new features from the proposed schema while maintaining
--- compatibility with the existing UUID-based schema structure.
+-- This migration adds new features while maintaining compatibility with the existing schema.
+--
+-- CORRECTED: Uses 'team' table (not 'clubs'), correct column names, correct foreign key references
 --
 -- Changes:
 -- 1. Add managers table (NEW)
--- 2. Add managing history table (NEW)
--- 3. Add captain_id to clubs table (NEW)
--- 4. Add gameweek column to matches table (NEW - currently calculated dynamically)
+-- 2. Add managing history table (NEW) - references team, not clubs
+-- 3. Add captain_id to team table (NEW) - references players(id)
+-- 4. Add matchweek column to matches table (NEW)
 -- 5. Add jersey_number, height, weight to players table (NEW)
---
--- Note: This migration maintains UUID primary keys and existing column naming
--- conventions (home_goals/away_goals, not home_score/away_score)
 -- ============================================
 
 -- ============================================
@@ -20,14 +18,15 @@
 -- ============================================
 -- Stores manager information
 CREATE TABLE IF NOT EXISTS managers (
-    manager_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    manager_name VARCHAR(255) NOT NULL,
+    nationality VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Index for faster lookups
-CREATE INDEX IF NOT EXISTS idx_managers_name ON managers(name);
+CREATE INDEX IF NOT EXISTS idx_managers_name ON managers(manager_name);
 
 -- Add comment
 COMMENT ON TABLE managers IS 'Stores manager information for Premier League clubs';
@@ -35,82 +34,85 @@ COMMENT ON TABLE managers IS 'Stores manager information for Premier League club
 -- ============================================
 -- 2. MANAGING HISTORY TABLE
 -- ============================================
--- Stores manager-club associations with season dates
+-- Stores manager-team associations with season dates
+-- CORRECTED: References team(team_id), not clubs(club_id)
 CREATE TABLE IF NOT EXISTS managing (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     manager_id UUID NOT NULL,
-    club_id UUID NOT NULL,
+    team_id UUID NOT NULL, -- CORRECTED: references team, not clubs
     season_start DATE,
     season_end DATE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     CONSTRAINT fk_managing_manager 
         FOREIGN KEY (manager_id) 
-        REFERENCES managers(manager_id) 
+        REFERENCES managers(id) 
         ON DELETE CASCADE 
         ON UPDATE CASCADE,
-    CONSTRAINT fk_managing_club 
-        FOREIGN KEY (club_id) 
-        REFERENCES clubs(club_id) 
+    CONSTRAINT fk_managing_team 
+        FOREIGN KEY (team_id) 
+        REFERENCES team(team_id) 
         ON DELETE CASCADE 
         ON UPDATE CASCADE
 );
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_managing_manager ON managing(manager_id);
-CREATE INDEX IF NOT EXISTS idx_managing_club ON managing(club_id);
+CREATE INDEX IF NOT EXISTS idx_managing_team ON managing(team_id);
 CREATE INDEX IF NOT EXISTS idx_managing_dates ON managing(season_start, season_end);
 
 -- Add comment
-COMMENT ON TABLE managing IS 'Stores manager-club associations with season start/end dates';
+COMMENT ON TABLE managing IS 'Stores manager-team associations with season start/end dates';
 
 -- ============================================
--- 3. ADD CAPTAIN_ID TO CLUBS TABLE
+-- 3. ADD CAPTAIN_ID TO TEAM TABLE
 -- ============================================
 -- Add captain_id column (nullable initially to avoid circular dependency issues)
-ALTER TABLE clubs 
+-- CORRECTED: Already exists in schema, but ensure foreign key is correct
+ALTER TABLE team 
 ADD COLUMN IF NOT EXISTS captain_id UUID;
 
 -- Add foreign key constraint (deferred to avoid circular dependency during initial setup)
--- Note: This creates a self-referential relationship through players table
+-- CORRECTED: References players(id), not players(player_id)
 DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_constraint 
-        WHERE conname = 'fk_club_captain'
+        WHERE conname = 'fk_team_captain'
     ) THEN
-        ALTER TABLE clubs 
-        ADD CONSTRAINT fk_club_captain 
+        ALTER TABLE team 
+        ADD CONSTRAINT fk_team_captain 
         FOREIGN KEY (captain_id) 
-        REFERENCES players(player_id) 
+        REFERENCES players(id) 
         ON DELETE SET NULL 
         ON UPDATE CASCADE;
     END IF;
 END $$;
 
--- Index for faster lookups
-CREATE INDEX IF NOT EXISTS idx_clubs_captain ON clubs(captain_id);
+-- Index for faster lookups (may already exist)
+CREATE INDEX IF NOT EXISTS idx_team_captain ON team(captain_id);
 
 -- Add comment
-COMMENT ON COLUMN clubs.captain_id IS 'References the player_id of the club captain (self-referential through players table)';
+COMMENT ON COLUMN team.captain_id IS 'References the id of the team captain from players table';
 
 -- ============================================
--- 4. ADD GAMEWEEK TO MATCHES TABLE
+-- 4. ADD MATCHWEEK TO MATCHES TABLE
 -- ============================================
--- Add gameweek column (currently calculated dynamically in application code)
+-- Add matchweek column (CORRECTED: uses matchweek, not gameweek)
 ALTER TABLE matches 
-ADD COLUMN IF NOT EXISTS gameweek INTEGER CHECK (gameweek >= 1 AND gameweek <= 38);
+ADD COLUMN IF NOT EXISTS matchweek INTEGER CHECK (matchweek >= 1 AND matchweek <= 38);
 
--- Index for faster filtering (gameweek is used in queries)
-CREATE INDEX IF NOT EXISTS idx_matches_gameweek ON matches(gameweek);
+-- Index for faster filtering (matchweek is used in queries)
+CREATE INDEX IF NOT EXISTS idx_matches_matchweek ON matches(matchweek);
+CREATE INDEX IF NOT EXISTS idx_matches_team_matchweek ON matches(home_team_id, matchweek); -- Composite for analytics
 
 -- Add comment
-COMMENT ON COLUMN matches.gameweek IS 'Gameweek number (1-38). Can be calculated from date if not provided.';
+COMMENT ON COLUMN matches.matchweek IS 'Matchweek number (1-38). Can be calculated from date if not provided.';
 
 -- ============================================
 -- 5. ADD ADDITIONAL FIELDS TO PLAYERS TABLE
 -- ============================================
--- Add jersey_number, height, weight columns
+-- Add jersey_number, height, weight columns (may already exist)
 ALTER TABLE players 
 ADD COLUMN IF NOT EXISTS jersey_number INTEGER CHECK (jersey_number >= 1 AND jersey_number <= 99);
 
@@ -120,8 +122,8 @@ ADD COLUMN IF NOT EXISTS height INTEGER CHECK (height > 0 AND height < 300); -- 
 ALTER TABLE players 
 ADD COLUMN IF NOT EXISTS weight INTEGER CHECK (weight > 0 AND weight < 200); -- weight in kg
 
--- Index for jersey_number lookups
-CREATE INDEX IF NOT EXISTS idx_players_jersey ON players(club_id, jersey_number);
+-- Index for jersey_number lookups (may already exist)
+CREATE INDEX IF NOT EXISTS idx_players_jersey ON players(team_id, jersey_number);
 
 -- Add comments
 COMMENT ON COLUMN players.jersey_number IS 'Player jersey number (1-99)';
@@ -157,5 +159,5 @@ CREATE TRIGGER update_managing_updated_at
 -- MIGRATION COMPLETE
 -- ============================================
 -- All new features have been added while maintaining compatibility
--- with the existing UUID-based schema structure.
+-- with the existing team-based schema structure.
 
