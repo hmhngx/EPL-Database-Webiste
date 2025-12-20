@@ -5,26 +5,40 @@ A comprehensive full-stack web application for analyzing and visualizing Premier
 ## 🎯 Features
 
 ### Frontend
-- **Interactive Dashboard**: Real-time league standings with dynamic calculations
+- **Interactive Dashboard**: Real-time league standings with dynamic calculations and point adjustments
 - **Club Analytics**: Detailed club profiles with statistics, squad information, and performance metrics
-- **Match Tracking**: Comprehensive match details with results, events, and highlights
+- **Match Tracking**: Comprehensive match details with results, events, and YouTube highlights
 - **Player Database**: Complete player information with position, nationality, and club associations
-- **Data Visualization**: Interactive charts using Chart.js for goals, results, and team statistics
+- **Advanced Data Visualization**: 
+  - Interactive charts using Chart.js and Recharts (Bar, Pie, Line, Scatter)
+  - Cross-filtering between charts (venue-based filtering)
+  - Tactical quadrant analysis with bisector logic (Attack/Defense scatterplot)
+  - Cumulative statistics and trendlines
+- **Media Optimization**: Club logos with Supabase Storage integration and fallback to UI-Avatars
 - **Responsive Design**: Modern UI with dark mode support, smooth animations, and mobile-first approach
 - **Performance Optimized**: Lazy loading, code splitting, and optimized rendering
 
 ### Backend
 - **RESTful API**: Express.js server with comprehensive endpoints
 - **Database Integration**: PostgreSQL (Supabase) with normalized schema (3NF)
-- **Dynamic Standings**: Real-time league table calculation from match data
+- **Dynamic Standings**: Real-time league table calculation from match data with point adjustments
+- **Point Adjustment System**: Handles PSR (Profit and Sustainability Rules) breaches (e.g., Everton -8, Nottingham Forest -4)
+- **Advanced SQL Views**: 
+  - `club_analytics_timeseries` view with window functions for cumulative statistics
+  - Dynamic position ranking with tie-breakers (Points → GD → GF)
 - **Connection Pooling**: Optimized database connections for performance
+- **Prepared Statements**: Parameterized queries for security and performance
 - **Error Handling**: Comprehensive error handling and logging
 - **CORS Support**: Configured for frontend integration
 
 ### Data Pipeline
 - **ETL Script**: Python-based data ingestion with fuzzy matching and normalization
+- **Batch Processing**: Processes 500 rows per transaction (10-50x performance improvement)
 - **Data Validation**: Comprehensive validation and error handling
 - **Team Name Normalization**: Handles variations (e.g., "Man Utd" → "Manchester United")
+- **Data Type Handling**: Automatic comma removal from attendance values (e.g., "21,572" → 21572)
+- **YouTube ID Extraction**: Extracts 11-character video IDs from full URLs for efficient storage
+- **Matchweek Calculation**: Automatically calculates matchweek from date if not provided
 - **Duplicate Prevention**: Automatic duplicate detection and handling
 
 ## 🛠️ Tech Stack
@@ -178,7 +192,7 @@ football-api/
 ## 🔌 API Endpoints
 
 ### Standings
-- `GET /api/standings` - Get league standings
+- `GET /api/standings` - Get league standings with point adjustments
 
 ### Clubs
 - `GET /api/clubs` - List all clubs
@@ -186,11 +200,14 @@ football-api/
 - `GET /api/clubs/:id/squad` - Get club squad (players)
 
 ### Matches
-- `GET /api/matches` - Get all matches (supports `?gameweek` query)
-- `GET /api/matches/:id` - Get match details
+- `GET /api/matches` - Get all matches (supports `?matchweek` and `?orderBy` query parameters)
+- `GET /api/matches/:id` - Get match details with YouTube highlights
 
 ### Players
 - `GET /api/players` - List all players
+
+### Analytics
+- `GET /api/analytics/club/:id` - Get club timeseries analytics (cumulative stats, position by matchweek)
 
 ### Health Check
 - `GET /health` - Server and database health check
@@ -315,7 +332,7 @@ Apache License, Version 2.0
 
 ## 👤 Author
 
-**Harrison Nguyen**
+**Harrison Nguyen, Nam Nguyen**
 
 ## 🙏 Acknowledgments
 

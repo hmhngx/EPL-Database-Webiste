@@ -54,7 +54,7 @@ The server will start on `http://localhost:5000` (or the port specified in `.env
 
 #### `GET /api/standings`
 
-Get current Premier League standings.
+Get current Premier League standings with point adjustments (PSR breaches).
 
 **Response:**
 ```json
@@ -63,8 +63,8 @@ Get current Premier League standings.
   "count": 20,
   "data": [
     {
-      "club_id": "uuid",
-      "club": "Manchester City",
+      "team_id": "uuid",
+      "team_name": "Manchester City",
       "mp": 38,
       "w": 28,
       "d": 5,
@@ -72,12 +72,21 @@ Get current Premier League standings.
       "gf": 91,
       "ga": 33,
       "gd": 58,
-      "pts": 89
+      "pts": 89,
+      "total_adjustment": 0,
+      "adjusted_pts": 89,
+      "logo_url": "https://..."
     }
   ],
   "duration": "45ms"
 }
 ```
+
+**Features:**
+- Includes point adjustments from `point_adjustments` table
+- Returns both `pts` (match-derived) and `adjusted_pts` (with deductions/additions)
+- Ordered by `adjusted_pts DESC, gd DESC`
+- Includes club logos from database or fallback to UI-Avatars
 
 ### Clubs
 
@@ -92,13 +101,13 @@ List all Premier League clubs with stadium information.
   "count": 20,
   "data": [
     {
-      "club_id": "uuid",
-      "name": "Manchester United",
+      "team_id": "uuid",
+      "team_name": "Manchester United",
       "founded": 1878,
       "logo_url": "https://...",
       "stadium": {
-        "stadium_id": "uuid",
-        "name": "Old Trafford",
+        "id": "uuid",
+        "stadium_name": "Old Trafford",
         "city": "Manchester",
         "capacity": 74310
       }
@@ -120,8 +129,8 @@ Get detailed information about a specific club.
 {
   "success": true,
   "data": {
-    "club_id": "uuid",
-    "name": "Manchester United",
+    "team_id": "uuid",
+    "team_name": "Manchester United",
     "founded": 1878,
     "logo_url": "https://...",
     "stadium": { ... },
@@ -150,8 +159,8 @@ Get all players for a specific club.
   "count": 25,
   "data": [
     {
-      "player_id": "uuid",
-      "name": "Bruno Fernandes",
+      "id": "uuid",
+      "player_name": "Bruno Fernandes",
       "position": "Midfielder",
       "nationality": "Portugal",
       "age": 29
@@ -165,18 +174,23 @@ Get all players for a specific club.
 
 #### `GET /api/matches`
 
-Get all matches. Supports optional `gameweek` query parameter.
+Get all matches. Supports optional `matchweek` and `orderBy` query parameters.
 
 **Query Parameters:**
-- `gameweek` (integer, optional) - Filter by gameweek (1-38)
+- `matchweek` (integer, optional) - Filter by matchweek (1-38)
+- `orderBy` (string, optional) - Sort order: `date`, `goals`, `total_goals`, `goal_difference`, `matchweek`, `attendance`
+- `orderDir` (string, optional) - Sort direction: `ASC` or `DESC` (default: `DESC`)
 
 **Examples:**
 ```bash
 # Get all matches
 GET /api/matches
 
-# Get matches for gameweek 1
-GET /api/matches?gameweek=1
+# Get matches for matchweek 1
+GET /api/matches?matchweek=1
+
+# Get matches sorted by attendance (highest first)
+GET /api/matches?orderBy=attendance&orderDir=DESC
 ```
 
 **Response:**
@@ -186,21 +200,21 @@ GET /api/matches?gameweek=1
   "count": 380,
   "data": [
     {
-      "match_id": "uuid",
+      "id": "uuid",
       "date": "2023-08-12T15:00:00Z",
-      "home_club": {
-        "club_id": "uuid",
-        "name": "Manchester United"
+      "home_team": {
+        "team_id": "uuid",
+        "team_name": "Manchester United"
       },
-      "away_club": {
-        "club_id": "uuid",
-        "name": "Liverpool"
+      "away_team": {
+        "team_id": "uuid",
+        "team_name": "Liverpool"
       },
-      "home_goals": 2,
-      "away_goals": 1,
+      "home_team_score": 2,
+      "away_team_score": 1,
       "attendance": 70000,
-      "referee": "Michael Oliver",
-      "gameweek": 1
+      "matchweek": 1,
+      "youtube_id": "dQw4w9WgXcQ"
     }
   ],
   "duration": "67ms"
@@ -219,20 +233,65 @@ Get detailed information about a specific match.
 {
   "success": true,
   "data": {
-    "match_id": "uuid",
+    "id": "uuid",
     "date": "2023-08-12T15:00:00Z",
-    "home_club": { ... },
-    "away_club": { ... },
-    "home_goals": 2,
-    "away_goals": 1,
-    "attendance": 70000,
-    "referee": "Michael Oliver",
-    "gameweek": 1,
-    "youtube_link": "https://..."
+    "home_team": { ... },
+    "away_team": { ... },
+    "home_team_score": 2,
+    "away_team_score": 1,
+      "attendance": 70000,
+      "matchweek": 1,
+      "youtube_id": "dQw4w9WgXcQ"
   },
   "duration": "22ms"
 }
 ```
+
+### Analytics
+
+#### `GET /api/analytics/club/:id`
+
+Get timeseries analytics for a specific club. Returns cumulative statistics and league position by matchweek.
+
+**Parameters:**
+- `id` (UUID) - Club/Team UUID
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "timeseries": [
+      {
+        "team_id": "uuid",
+        "team_name": "Manchester United",
+        "matchweek": 1,
+        "date": "2023-08-12T15:00:00Z",
+        "venue": "Home",
+        "goals_scored": 2,
+        "goals_conceded": 1,
+        "points": 3,
+        "result": "W",
+        "cumulative_points": 3,
+        "cumulative_gd": 1,
+        "cumulative_gf": 2,
+        "cumulative_ga": 1,
+        "position": 5,
+        "opponent_name": "Liverpool"
+      }
+    ],
+    "totalMatches": 38
+  },
+  "count": 38,
+  "duration": "67ms"
+}
+```
+
+**Features:**
+- Uses `club_analytics_timeseries` view with window functions
+- Calculates cumulative statistics (points, goal difference, goals for/against)
+- Includes league position ranking with tie-breakers
+- Supports venue filtering (Home/Away) in frontend
 
 ### Players
 
@@ -252,9 +311,9 @@ List all players across all clubs.
       "position": "Forward",
       "nationality": "Egypt",
       "age": 31,
-      "club": {
-        "club_id": "uuid",
-        "name": "Liverpool"
+      "team": {
+        "team_id": "uuid",
+        "team_name": "Liverpool"
       }
     }
   ],
@@ -324,7 +383,7 @@ All API responses follow a consistent format:
 ```json
 {
   "success": false,
-  "error": "Invalid club ID format. Expected UUID."
+  "error": "Invalid team ID format. Expected UUID."
 }
 ```
 
@@ -332,7 +391,7 @@ All API responses follow a consistent format:
 ```json
 {
   "success": false,
-  "error": "Club not found"
+  "error": "Team not found"
 }
 ```
 
@@ -349,9 +408,16 @@ All API responses follow a consistent format:
 ### Connection Pooling
 
 The server uses PostgreSQL connection pooling with the following configuration:
-- **Maximum connections**: 20
+- **Maximum connections**: 10 (reduced for stability)
 - **Idle timeout**: 30 seconds
 - **Connection timeout**: 2 seconds
+
+### Advanced SQL Features
+
+- **Window Functions**: Used in `club_analytics_timeseries` view for cumulative calculations
+- **Prepared Statements**: All queries use parameterized statements for security and performance
+- **Transactions**: ETL script uses batch transactions (500 rows per transaction)
+- **Composite Indexes**: Optimized indexes for common query patterns
 
 ### Response Time Monitoring
 
@@ -401,7 +467,7 @@ curl http://localhost:5000/api/standings
 curl http://localhost:5000/api/clubs
 
 # Get specific club
-curl http://localhost:5000/api/clubs/[CLUB-UUID]
+curl http://localhost:5000/api/clubs/[TEAM-UUID]
 
 # Get matches
 curl http://localhost:5000/api/matches

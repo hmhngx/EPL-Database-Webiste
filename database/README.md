@@ -29,33 +29,33 @@ Stores stadium information for all Premier League clubs.
 **Indexes:**
 - `idx_stadiums_city` on `city`
 
-#### `clubs`
+#### `team`
 Stores Premier League club/team information.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `club_id` | UUID | PRIMARY KEY | Unique club identifier |
+| `team_id` | UUID | PRIMARY KEY | Unique team identifier |
 | `stadium_id` | UUID | NOT NULL, FK → stadiums | Associated stadium |
-| `name` | VARCHAR(255) | NOT NULL, UNIQUE | Club name |
-| `founded` | INTEGER | CHECK (1800 ≤ founded ≤ current year) | Year founded |
-| `logo_url` | TEXT | | Club logo URL |
+| `team_name` | VARCHAR(255) | NOT NULL, UNIQUE | Team name |
+| `founded_year` | INTEGER | CHECK (1800 ≤ founded_year ≤ current year) | Year founded |
+| `logo_url` | TEXT | | Club logo URL (Supabase Storage or external) |
 | `captain_id` | UUID | FK → players | Club captain (optional) |
 | `created_at` | TIMESTAMPTZ | DEFAULT NOW() | Record creation timestamp |
 | `updated_at` | TIMESTAMPTZ | DEFAULT NOW() | Record update timestamp |
 
 **Indexes:**
-- `idx_clubs_stadium` on `stadium_id`
-- `idx_clubs_name` on `name`
-- `idx_clubs_captain` on `captain_id`
+- `idx_team_stadium` on `stadium_id`
+- `idx_team_name` on `team_name`
+- `idx_team_captain` on `captain_id`
 
 #### `players`
 Stores player information for all clubs.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `player_id` | UUID | PRIMARY KEY | Unique player identifier |
-| `club_id` | UUID | NOT NULL, FK → clubs | Associated club |
-| `name` | VARCHAR(255) | NOT NULL | Player full name |
+| `id` | UUID | PRIMARY KEY | Unique player identifier |
+| `team_id` | UUID | NOT NULL, FK → team | Associated team |
+| `player_name` | VARCHAR(255) | NOT NULL | Player full name |
 | `position` | VARCHAR(50) | NOT NULL, CHECK | Position (Goalkeeper, Defender, Midfielder, Forward) |
 | `nationality` | VARCHAR(100) | NOT NULL | Player nationality |
 | `age` | INTEGER | NOT NULL, CHECK (16 ≤ age ≤ 50) | Player age |
@@ -66,37 +66,40 @@ Stores player information for all clubs.
 | `updated_at` | TIMESTAMPTZ | DEFAULT NOW() | Record update timestamp |
 
 **Indexes:**
-- `idx_players_club` on `club_id`
+- `idx_players_team` on `team_id`
 - `idx_players_position` on `position`
-- `idx_players_name` on `name`
+- `idx_players_name` on `player_name`
+- `idx_players_team_position` on `(team_id, position)` - Composite index for squad queries
 
 #### `matches`
 Stores match results and details.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `match_id` | UUID | PRIMARY KEY | Unique match identifier |
-| `home_club_id` | UUID | NOT NULL, FK → clubs | Home team |
-| `away_club_id` | UUID | NOT NULL, FK → clubs | Away team |
+| `id` | UUID | PRIMARY KEY | Unique match identifier |
+| `home_team_id` | UUID | NOT NULL, FK → team | Home team |
+| `away_team_id` | UUID | NOT NULL, FK → team | Away team |
 | `date` | TIMESTAMPTZ | NOT NULL | Match date and time |
-| `home_goals` | INTEGER | NOT NULL, CHECK ≥ 0 | Home team goals |
-| `away_goals` | INTEGER | NOT NULL, CHECK ≥ 0 | Away team goals |
-| `attendance` | INTEGER | CHECK ≥ 0 | Match attendance (optional) |
+| `home_team_score` | INTEGER | NOT NULL, CHECK ≥ 0 | Home team goals |
+| `away_team_score` | INTEGER | NOT NULL, CHECK ≥ 0 | Away team goals |
+| `matchweek` | INTEGER | CHECK (1 ≤ matchweek ≤ 38) | Matchweek number (optional) |
+| `attendance` | INTEGER | CHECK ≥ 0 | Match attendance (optional, handles comma-separated values) |
 | `referee` | VARCHAR(255) | | Referee name (optional) |
-| `gameweek` | INTEGER | CHECK (1 ≤ gameweek ≤ 38) | Gameweek number (optional) |
-| `youtube_link` | VARCHAR(255) | | YouTube video link (optional) |
+| `youtube_id` | VARCHAR(11) | | YouTube video ID (11 characters, not full URL) |
 | `created_at` | TIMESTAMPTZ | DEFAULT NOW() | Record creation timestamp |
 | `updated_at` | TIMESTAMPTZ | DEFAULT NOW() | Record update timestamp |
 
 **Constraints:**
-- `home_club_id ≠ away_club_id` (CHECK constraint)
+- `home_team_id ≠ away_team_id` (CHECK constraint)
 
 **Indexes:**
-- `idx_matches_home_club` on `home_club_id`
-- `idx_matches_away_club` on `away_club_id`
+- `idx_matches_home_team` on `home_team_id`
+- `idx_matches_away_team` on `away_team_id`
 - `idx_matches_date` on `date`
-- `idx_matches_gameweek` on `gameweek`
-- `idx_matches_youtube_link` on `youtube_link`
+- `idx_matches_matchweek` on `matchweek`
+- `idx_matches_teams_date` on `(home_team_id, away_team_id, date)` - Composite for duplicate detection
+- `idx_matches_team_matchweek` on `(home_team_id, matchweek)` - Composite for analytics
+- `idx_matches_youtube_id` on `youtube_id` WHERE `youtube_id IS NOT NULL` - Partial index
 
 #### `managers` (Optional)
 Stores manager information (added via migration).
@@ -109,16 +112,38 @@ Stores manager information (added via migration).
 | `created_at` | TIMESTAMPTZ | DEFAULT NOW() | Record creation timestamp |
 | `updated_at` | TIMESTAMPTZ | DEFAULT NOW() | Record update timestamp |
 
+#### `point_adjustments`
+Stores point adjustments (deductions/additions) for teams. Used for PSR (Profit and Sustainability Rules) breaches and other league sanctions.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PRIMARY KEY | Unique adjustment identifier |
+| `team_id` | UUID | NOT NULL, FK → team | Team reference |
+| `adjustment` | INTEGER | NOT NULL | Point adjustment (negative for deductions, positive for additions) |
+| `season` | VARCHAR(9) | NOT NULL | Season identifier (format: '2023/24') |
+| `reason` | TEXT | | Reason for adjustment (e.g., 'PSR breach') |
+| `created_at` | TIMESTAMPTZ | DEFAULT NOW() | Record creation timestamp |
+| `updated_at` | TIMESTAMPTZ | DEFAULT NOW() | Record update timestamp |
+
+**Indexes:**
+- `idx_point_adjustments_team` on `team_id`
+- `idx_point_adjustments_season` on `season`
+- `idx_point_adjustments_team_season` on `(team_id, season)` - Composite for standings query
+
+**Example Data:**
+- Everton: -8 points (2023/24 season, PSR breach)
+- Nottingham Forest: -4 points (2023/24 season, PSR breach)
+
 #### `managing` (Optional)
 Links managers to clubs with season dates (added via migration).
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `managing_id` | UUID | PRIMARY KEY | Unique association identifier |
+| `id` | UUID | PRIMARY KEY | Unique association identifier |
 | `manager_id` | UUID | NOT NULL, FK → managers | Manager reference |
-| `club_id` | UUID | NOT NULL, FK → clubs | Club reference |
-| `start_date` | DATE | NOT NULL | Start date of management |
-| `end_date` | DATE | | End date (NULL if current) |
+| `team_id` | UUID | NOT NULL, FK → team | Team reference |
+| `season_start` | DATE | | Start date of management |
+| `season_end` | DATE | | End date (NULL if current) |
 | `created_at` | TIMESTAMPTZ | DEFAULT NOW() | Record creation timestamp |
 | `updated_at` | TIMESTAMPTZ | DEFAULT NOW() | Record update timestamp |
 
@@ -128,8 +153,8 @@ Links managers to clubs with season dates (added via migration).
 Dynamically calculates Premier League standings from match results.
 
 **Columns:**
-- `club_id` (UUID) - Club identifier
-- `club` (VARCHAR) - Club name
+- `team_id` (UUID) - Team identifier
+- `team_name` (VARCHAR) - Team name
 - `mp` (INTEGER) - Matches played
 - `w` (INTEGER) - Wins
 - `d` (INTEGER) - Draws
@@ -142,13 +167,43 @@ Dynamically calculates Premier League standings from match results.
 **Ordering:**
 1. Points (DESC)
 2. Goal difference (DESC)
-3. Goals for (DESC)
+3. Goals for (DESC) - Third tie-breaker
 
 **Features:**
-- Automatically includes all clubs (even with no matches)
-- Calculates statistics in real-time from `matches` table
+- Automatically includes all teams (even with no matches)
+- Calculates statistics in real-time from `matches` table using CTEs
+- Uses UNION ALL to unpivot home/away matches
 - No static data required
 - Updates automatically when matches are added/modified
+- **Note**: Point adjustments are applied in API layer, not in view
+
+#### `club_analytics_timeseries`
+Advanced timeseries view with window functions for cumulative statistics and position ranking.
+
+**Columns:**
+- `team_id` (UUID) - Team identifier
+- `team_name` (VARCHAR) - Team name
+- `matchweek` (INTEGER) - Matchweek number
+- `date` (TIMESTAMPTZ) - Match date
+- `venue` (VARCHAR) - 'Home' or 'Away'
+- `goals_scored` (INTEGER) - Goals scored in match
+- `goals_conceded` (INTEGER) - Goals conceded in match
+- `points` (INTEGER) - Points earned (3/1/0)
+- `result` (VARCHAR) - Match result ('W', 'D', 'L')
+- `cumulative_points` (INTEGER) - Running total of points (includes adjustments)
+- `cumulative_gd` (INTEGER) - Running goal difference
+- `cumulative_gf` (INTEGER) - Running goals for
+- `cumulative_ga` (INTEGER) - Running goals against
+- `position` (INTEGER) - League position at this matchweek
+- `opponent_name` (VARCHAR) - Opponent team name
+
+**Features:**
+- Uses window functions (`SUM() OVER()`) for cumulative calculations
+- Uses `RANK() OVER()` for position calculation with tie-breakers
+- Replicates Power BI DAX logic in PostgreSQL
+- Includes point adjustments in cumulative calculations
+- Unpivots matches (one row per team per match)
+- Supports venue-based filtering in frontend
 
 ## 🚀 Setup Instructions
 
@@ -186,58 +241,88 @@ psql -h db.your-project.supabase.co -U postgres -d postgres -f database/schema.s
 
 ## 📝 Usage Examples
 
-### Query League Standings
+### Query League Standings with Point Adjustments
 
 ```sql
--- Get current league standings
-SELECT * FROM league_standings ORDER BY pts DESC, gd DESC;
+-- Get current league standings with point adjustments
+SELECT 
+    ls.team_id,
+    ls.team_name,
+    ls.pts,
+    COALESCE(SUM(pa.adjustment), 0) AS total_adjustment,
+    (ls.pts + COALESCE(SUM(pa.adjustment), 0)) AS adjusted_pts
+FROM league_standings ls
+LEFT JOIN point_adjustments pa ON ls.team_id = pa.team_id
+WHERE pa.season = '2023/24' OR pa.season IS NULL
+GROUP BY ls.team_id, ls.team_name, ls.pts, ls.gd
+ORDER BY adjusted_pts DESC, ls.gd DESC;
 ```
 
 ### Get Club Information
 
 ```sql
--- Get club with stadium details
+-- Get team with stadium details
 SELECT 
-    c.name AS club_name,
-    c.founded,
-    s.name AS stadium_name,
+    t.team_name,
+    t.founded_year,
+    t.logo_url,
+    s.stadium_name,
     s.capacity
-FROM clubs c
-JOIN stadiums s ON c.stadium_id = s.stadium_id
-WHERE c.name = 'Manchester United';
+FROM team t
+JOIN stadiums s ON t.stadium_id = s.id
+WHERE t.team_name = 'Manchester United';
 ```
 
 ### Get Match Results
 
 ```sql
--- Get all matches for a specific gameweek
+-- Get all matches for a specific matchweek
 SELECT 
     m.date,
-    h.name AS home_team,
-    a.name AS away_team,
-    m.home_goals,
-    m.away_goals
+    h.team_name AS home_team,
+    a.team_name AS away_team,
+    m.home_team_score,
+    m.away_team_score,
+    m.attendance,
+    m.youtube_id
 FROM matches m
-JOIN clubs h ON m.home_club_id = h.club_id
-JOIN clubs a ON m.away_club_id = a.club_id
-WHERE m.gameweek = 1
+JOIN team h ON m.home_team_id = h.team_id
+JOIN team a ON m.away_team_id = a.team_id
+WHERE m.matchweek = 1
 ORDER BY m.date;
 ```
 
 ### Get Club Squad
 
 ```sql
--- Get all players for a club
+-- Get all players for a team
 SELECT 
-    p.name,
+    p.player_name,
     p.position,
     p.nationality,
     p.age,
     p.jersey_number
 FROM players p
-JOIN clubs c ON p.club_id = c.club_id
-WHERE c.name = 'Manchester United'
+JOIN team t ON p.team_id = t.team_id
+WHERE t.team_name = 'Manchester United'
 ORDER BY p.position, p.jersey_number;
+```
+
+### Get Club Analytics Timeseries
+
+```sql
+-- Get cumulative statistics and position by matchweek
+SELECT 
+    team_name,
+    matchweek,
+    venue,
+    result,
+    cumulative_points,
+    cumulative_gd,
+    position
+FROM club_analytics_timeseries
+WHERE team_id = 'uuid-here'
+ORDER BY matchweek ASC;
 ```
 
 ## 🔄 Database Migrations
@@ -246,15 +331,30 @@ Additional schema changes are managed through migration scripts in the `migratio
 
 ### Available Migrations
 
-1. **`add_youtube_link_to_matches.sql`**
-   - Adds `youtube_link` column to `matches` table
-   - Enables YouTube video embeds on match detail pages
+1. **`add_point_adjustments.sql`**
+   - Creates `point_adjustments` table for PSR breaches
+   - Inserts Everton (-8) and Nottingham Forest (-4) deductions for 2023/24
+   - Adds composite indexes for performance
 
-2. **`add_managers_captains_gameweek.sql`**
+2. **`add_logo_url_and_youtube_id.sql`**
+   - Adds `logo_url` to `team` table (Supabase Storage integration)
+   - Adds `youtube_id` (11 characters) to `matches` table (replaces full URLs)
+   - Optimizes media storage
+
+3. **`create_club_analytics_timeseries_view.sql`**
+   - Creates advanced timeseries view with window functions
+   - Calculates cumulative statistics and position ranking
+   - Replicates Power BI DAX logic in PostgreSQL
+
+4. **`add_managers_captains_gameweek.sql`**
    - Creates `managers` and `managing` tables
-   - Adds `captain_id` to `clubs` table
-   - Adds `gameweek` to `matches` table
+   - Adds `captain_id` to `team` table
+   - Adds `matchweek` to `matches` table
    - Adds `jersey_number`, `height`, `weight` to `players` table
+
+5. **`add_performance_indexes.sql`**
+   - Adds composite indexes for common query patterns
+   - Optimizes standings and analytics queries
 
 For detailed migration documentation, see [`migrations/README.md`](migrations/README.md).
 
@@ -262,8 +362,6 @@ For detailed migration documentation, see [`migrations/README.md`](migrations/RE
 
 The schema adheres to 3rd Normal Form (3NF):
 
-- ✅ **1NF**: All attributes are atomic (no composite values)
-- ✅ **2NF**: All non-key attributes fully depend on primary keys
 - ✅ **3NF**: No transitive dependencies (all attributes depend only on primary key)
 - ✅ **Referential Integrity**: Foreign keys maintain data consistency
 
