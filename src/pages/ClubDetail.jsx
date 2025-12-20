@@ -12,6 +12,26 @@ import {
   LinearScale,
   BarElement
 } from 'chart.js';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar as RechartsBar,
+  PieChart,
+  Pie,
+  Cell,
+  ComposedChart,
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend as RechartsLegend,
+  ResponsiveContainer,
+  ReferenceLine,
+  ReferenceArea
+} from 'recharts';
 
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
@@ -55,6 +75,9 @@ const ClubDetail = () => {
   const [searchNationality, setSearchNationality] = useState('');
   const [captainFilter, setCaptainFilter] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'player_name', direction: 'asc' });
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [selectedMatchweek, setSelectedMatchweek] = useState(null);
+  const [activeVenue, setActiveVenue] = useState('All'); // 'All', 'Home', or 'Away'
 
   // Get team color
   const teamColor = useMemo(() => {
@@ -103,6 +126,20 @@ const ClubDetail = () => {
         if (!standingsResponse.ok) throw new Error('Failed to fetch standings');
         const standingsData = await standingsResponse.json();
         if (isMounted) setStandings(standingsData.data || []);
+
+        // Fetch analytics data
+        const analyticsResponse = await fetch(`/api/analytics/club/${id}`);
+        if (analyticsResponse.ok) {
+          const analyticsData = await analyticsResponse.json();
+          if (isMounted) {
+            setAnalyticsData(analyticsData.data);
+            // Set initial selected matchweek to the last one
+            if (analyticsData.data?.timeseries?.length > 0) {
+              const lastMatchweek = analyticsData.data.timeseries[analyticsData.data.timeseries.length - 1];
+              setSelectedMatchweek(lastMatchweek);
+            }
+          }
+        }
 
       } catch (err) {
         // Only set error if component is still mounted and it's a real error
@@ -396,46 +433,96 @@ const ClubDetail = () => {
     return colors[position] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-700';
   };
 
-  // Chart data for season results (Doughnut)
-  const chartData = useMemo(() => {
-    if (!stats) {
-      console.log('⚠ No stats available for season results chart');
-      return null;
+  // Filter data for pie chart based on activeVenue
+  const filteredDataForPie = useMemo(() => {
+    if (!analyticsData || !analyticsData.timeseries || analyticsData.timeseries.length === 0) return [];
+    
+    if (activeVenue === 'All') {
+      return analyticsData.timeseries;
+    } else if (activeVenue === 'Home') {
+      return analyticsData.timeseries.filter(d => (d.venue || 'N/A') === 'Home');
+    } else if (activeVenue === 'Away') {
+      return analyticsData.timeseries.filter(d => (d.venue || 'N/A') === 'Away');
     }
-    
-    const wins = stats.wins || 0;
-    const draws = stats.draws || 0;
-    const losses = stats.losses || 0;
-    
-    console.log(`📈 Season results: W=${wins}, D=${draws}, L=${losses}`);
-    
-    // Only show chart if there's at least one match
-    if (wins === 0 && draws === 0 && losses === 0) {
-      console.log('⚠ No match results to display');
-      return null;
-    }
+    return analyticsData.timeseries;
+  }, [activeVenue, analyticsData]);
 
-    const chartData = {
-      labels: ['Wins', 'Draws', 'Losses'],
-      datasets: [{
-        data: [wins, draws, losses],
-        backgroundColor: [
-          '#00FF85', // Green for wins (as specified)
-          '#9CA3AF', // Gray for draws (as specified)
-          '#EF0107'  // Red for losses (as specified)
-        ],
-        borderColor: [
-          '#00FF85',
-          '#9CA3AF',
-          '#EF0107'
-        ],
-        borderWidth: 2
-      }]
+  // Calculate pie chart data by grouping 'result' column from filtered data
+  const pieChartData = useMemo(() => {
+    if (!filteredDataForPie || filteredDataForPie.length === 0) return [];
+    
+    // Group by 'result' column with error handling
+    const resultCounts = { W: 0, D: 0, L: 0 };
+    
+    filteredDataForPie.forEach(row => {
+      const result = row.result || 'N/A';
+      if (result === 'W' || result === 'w') {
+        resultCounts.W++;
+      } else if (result === 'D' || result === 'd') {
+        resultCounts.D++;
+      } else if (result === 'L' || result === 'l') {
+        resultCounts.L++;
+      }
+    });
+    
+    return [
+      { name: 'Wins', value: resultCounts.W, color: '#10B981' }, // Emerald
+      { name: 'Draws', value: resultCounts.D, color: '#94A3B8' }, // Slate
+      { name: 'Losses', value: resultCounts.L, color: '#E11D48' } // Rose
+    ].filter(item => item.value > 0);
+  }, [filteredDataForPie]);
+  
+  // Calculate bar chart data by grouping 'venue' and 'result' from timeseries data
+  const barChartData = useMemo(() => {
+    if (!analyticsData || !analyticsData.timeseries || analyticsData.timeseries.length === 0) {
+      return [
+        { venue: 'Home', W: 0, D: 0, L: 0, opacity: 1 },
+        { venue: 'Away', W: 0, D: 0, L: 0, opacity: 1 }
+      ];
+    }
+    
+    // Group by venue and result
+    const venueStats = {
+      Home: { W: 0, D: 0, L: 0 },
+      Away: { W: 0, D: 0, L: 0 }
     };
     
-    console.log('📊 Season results chart data:', chartData);
-    return chartData;
-  }, [stats]);
+    analyticsData.timeseries.forEach(row => {
+      const venue = row.venue || 'N/A';
+      const result = row.result || 'N/A';
+      
+      if (venue === 'Home' && (result === 'W' || result === 'w')) {
+        venueStats.Home.W++;
+      } else if (venue === 'Home' && (result === 'D' || result === 'd')) {
+        venueStats.Home.D++;
+      } else if (venue === 'Home' && (result === 'L' || result === 'l')) {
+        venueStats.Home.L++;
+      } else if (venue === 'Away' && (result === 'W' || result === 'w')) {
+        venueStats.Away.W++;
+      } else if (venue === 'Away' && (result === 'D' || result === 'd')) {
+        venueStats.Away.D++;
+      } else if (venue === 'Away' && (result === 'L' || result === 'l')) {
+        venueStats.Away.L++;
+      }
+    });
+    
+    return [
+      {
+        venue: 'Home',
+        W: venueStats.Home.W,
+        D: venueStats.Home.D,
+        L: venueStats.Home.L,
+        opacity: activeVenue === 'All' || activeVenue === 'Home' ? 1 : 0.3
+      },
+      {
+        venue: 'Away',
+        W: venueStats.Away.W,
+        D: venueStats.Away.D,
+        L: venueStats.Away.L,
+        opacity: activeVenue === 'All' || activeVenue === 'Away' ? 1 : 0.3
+      }
+    ];
+  }, [analyticsData, activeVenue]);
 
   // Chart data for goals (Bar chart)
   const goalsChartData = useMemo(() => {
@@ -533,7 +620,7 @@ const ClubDetail = () => {
                 }}
               />
               <div className="flex-1">
-                <h1 className="text-5xl font-heading font-bold mb-3">
+                <h1 className="text-5xl font-heading font-bold mb-3 text-white">
                   {team.team_name}
                 </h1>
                 <div className="flex flex-wrap items-center gap-4 text-white/90">
@@ -649,7 +736,7 @@ const ClubDetail = () => {
             {/* Attendance Records */}
             {stats.highestAttendance && (
               <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/10 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Highest Attendance</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Highest Attendance at Home</div>
                 <div className="text-lg font-bold text-purple-700 dark:text-purple-400">
                   {(() => {
                     const attendance = parseAttendance(stats.highestAttendance.attendance);
@@ -666,7 +753,7 @@ const ClubDetail = () => {
 
             {stats.lowestAttendance && (
               <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/10 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Lowest Attendance</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Lowest Attendance at Home</div>
                 <div className="text-lg font-bold text-purple-700 dark:text-purple-400">
                   {(() => {
                     const attendance = parseAttendance(stats.lowestAttendance.attendance);
@@ -725,69 +812,9 @@ const ClubDetail = () => {
         </motion.div>
       )}
 
-      {/* Charts Section */}
+      {/* Goals Charts Section - Side by Side */}
       {stats && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Season Results Chart (Doughnut) */}
-          {chartData ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6"
-            >
-              <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">
-                Season Results
-              </h2>
-              <div className="flex justify-center">
-                <div className="w-64 h-64">
-                  <Doughnut 
-                    data={chartData} 
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: true,
-                      plugins: {
-                        legend: {
-                          position: 'bottom',
-                          labels: {
-                            padding: 15,
-                            font: {
-                              size: 14
-                            },
-                            color: '#374151'
-                          }
-                        },
-                        tooltip: {
-                          callbacks: {
-                            label: function(context) {
-                              const label = context.label || '';
-                              const value = context.parsed || 0;
-                              const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                              return `${label}: ${value} (${percentage}%)`;
-                            }
-                          }
-                        }
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6"
-            >
-              <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">
-                Season Results
-              </h2>
-              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                No match data available
-              </div>
-            </motion.div>
-          )}
-
           {/* Goals Chart (Bar) */}
           {goalsChartData ? (
             <motion.div
@@ -798,7 +825,7 @@ const ClubDetail = () => {
               <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">
                 Goals (GF/GA)
               </h2>
-              <div className="h-64">
+              <div className="h-96">
                 <Bar 
                   data={goalsChartData} 
                   options={{
@@ -842,8 +869,433 @@ const ClubDetail = () => {
               </div>
             </motion.div>
           )}
+
+          {/* Season Path: Goals For vs Goals Against */}
+          {analyticsData && analyticsData.timeseries && analyticsData.timeseries.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6"
+            >
+              <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">
+                Season Path: Goals For vs Goals Against
+              </h2>
+              <div className="h-96 relative" style={{ aspectRatio: '1' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart
+                    data={analyticsData.timeseries}
+                    margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                  >
+                    <defs>
+                      {/* Background zones as polygons */}
+                      <polygon id="attackingZone" points="0,110 110,0 110,110" fill="rgba(16, 185, 129, 0.08)" />
+                      <polygon id="defensiveZone" points="0,0 0,110 110,0" fill="rgba(225, 29, 72, 0.08)" />
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#38003C" opacity={0.2} />
+                    <XAxis 
+                      type="number" 
+                      dataKey="cumulative_ga" 
+                      name="Goals Against"
+                      domain={[0, 110]}
+                      label={{ value: 'Goals Against', position: 'insideBottom', offset: -5 }}
+                      stroke="#38003C"
+                    />
+                    <YAxis 
+                      type="number" 
+                      dataKey="cumulative_gf" 
+                      name="Goals For"
+                      domain={[0, 110]}
+                      label={{ value: 'Goals For', angle: -90, position: 'insideLeft' }}
+                      stroke="#38003C"
+                    />
+                    {/* Background Shading - Attacking Dominance (Upper-Left: y > x) */}
+                    <ReferenceArea 
+                      x1={0} 
+                      y1={110} 
+                      x2={110} 
+                      y2={0}
+                      fill="rgba(16, 185, 129, 0.08)"
+                      ifOverflow="visible"
+                    />
+                    {/* Background Shading - Defensive Deficit (Lower-Right: y < x) */}
+                    <ReferenceArea 
+                      x1={0} 
+                      y1={0} 
+                      x2={110} 
+                      y2={110}
+                      fill="rgba(225, 29, 72, 0.08)"
+                      ifOverflow="visible"
+                    />
+                    {/* Bisector Line (y=x) - diagonal line from (0,0) to (110,110) */}
+                    <ReferenceLine 
+                      segment={[{ x: 0, y: 0 }, { x: 110, y: 110 }]}
+                      stroke="#6B7280" 
+                      strokeDasharray="5 5" 
+                      strokeWidth={1.5}
+                      ifOverflow="visible"
+                    />
+                    {/* Custom Tooltip */}
+                    <RechartsTooltip 
+                      cursor={{ strokeDasharray: '3 3' }}
+                      content={({ active, payload }) => {
+                        if (!active || !payload || !payload[0]) return null;
+                        
+                        const data = payload[0].payload;
+                        const matchweek = data.matchweek || '';
+                        const result = data.result || 'N/A';
+                        const cumulativeGf = data.cumulative_gf || 0;
+                        const cumulativeGa = data.cumulative_ga || 0;
+                        const netGd = cumulativeGf - cumulativeGa;
+                        const venue = data.venue || 'N/A';
+                        const goalsScored = data.goals_scored || 0;
+                        const goalsConceded = data.goals_conceded || 0;
+                        
+                        return (
+                          <div className="bg-slate-900 border-2 border-[#00FF85] rounded-lg p-4 shadow-xl">
+                            <div className="text-white font-bold text-lg mb-2">
+                              Matchweek {matchweek}
+                            </div>
+                            <div className="space-y-1 text-sm">
+                              <div className="text-white">
+                                <span className="text-gray-400">Result:</span> {result} vs {data.opponent_name || 'Opponent'} ({venue})
+                              </div>
+                              <div className="text-white">
+                                <span className="text-gray-400">Match Score:</span> {goalsScored} - {goalsConceded}
+                              </div>
+                              <div className="text-white">
+                                <span className="text-gray-400">Total GF:</span> {cumulativeGf} | <span className="text-gray-400">Total GA:</span> {cumulativeGa}
+                              </div>
+                              <div className={`font-semibold ${netGd >= 0 ? 'text-[#10B981]' : 'text-[#E11D48]'}`}>
+                                <span className="text-gray-400">Net GD:</span> {netGd >= 0 ? '+' : ''}{netGd}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="cumulative_gf"
+                      stroke="#00FF85"
+                      strokeWidth={2}
+                      dot={false}
+                      name="Season Path"
+                    />
+                    <Scatter
+                      name="Season Path"
+                      dataKey="cumulative_gf"
+                      fill="#00FF85"
+                      shape={(props) => {
+                        const { cx, cy, payload } = props;
+                        const isLatest = payload.matchweek === analyticsData.timeseries[analyticsData.timeseries.length - 1]?.matchweek;
+                        return (
+                          <g>
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r={isLatest ? 6 : 4}
+                              fill="#00FF85"
+                              stroke={isLatest ? "#FFFFFF" : "none"}
+                              strokeWidth={isLatest ? 2 : 0}
+                              opacity={isLatest ? 1 : 0.8}
+                            />
+                            {isLatest && (
+                              <circle
+                                cx={cx}
+                                cy={cy}
+                                r={8}
+                                fill="none"
+                                stroke="#00FF85"
+                                strokeWidth={2}
+                                opacity={0.5}
+                                className="animate-ping"
+                              />
+                            )}
+                          </g>
+                        );
+                      }}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
+          )}
         </div>
       )}
+
+      {/* Feature A: Performance Progression & Cards */}
+      {analyticsData && analyticsData.timeseries && analyticsData.timeseries.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6"
+        >
+          <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+            <FaChartLine className="text-primary" />
+            Performance Progression
+          </h2>
+          
+          {/* Stat Cards */}
+          {selectedMatchweek && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Points</div>
+                <div className="text-2xl font-bold text-primary">{selectedMatchweek.cumulative_points}</div>
+              </div>
+              <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/10 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Goal Difference</div>
+                <div className="text-2xl font-bold text-green-700 dark:text-green-400">{selectedMatchweek.cumulative_gd > 0 ? '+' : ''}{selectedMatchweek.cumulative_gd}</div>
+              </div>
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/10 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Goals For</div>
+                <div className="text-2xl font-bold text-blue-700 dark:text-blue-400">{selectedMatchweek.cumulative_gf}</div>
+              </div>
+              <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/10 rounded-lg p-4 border border-red-200 dark:border-red-800">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Goals Against</div>
+                <div className="text-2xl font-bold text-red-700 dark:text-red-400">{selectedMatchweek.cumulative_ga}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Position Progression Line Chart */}
+          <div className="h-96">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={analyticsData.timeseries}
+                onClick={(data) => {
+                  if (data && data.activePayload && data.activePayload[0]) {
+                    const matchweek = data.activePayload[0].payload.matchweek;
+                    const selected = analyticsData.timeseries.find(d => d.matchweek === matchweek);
+                    if (selected) setSelectedMatchweek(selected);
+                  }
+                }}
+                onMouseMove={(data) => {
+                  if (data && data.activePayload && data.activePayload[0]) {
+                    const matchweek = data.activePayload[0].payload.matchweek;
+                    const selected = analyticsData.timeseries.find(d => d.matchweek === matchweek);
+                    if (selected) setSelectedMatchweek(selected);
+                  }
+                }}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#38003C" opacity={0.2} />
+                <XAxis 
+                  dataKey="matchweek" 
+                  label={{ value: 'Matchweek', position: 'insideBottom', offset: -5 }}
+                  stroke="#38003C"
+                />
+                <YAxis 
+                  reversed
+                  domain={[1, 20]}
+                  ticks={Array.from({ length: 20 }, (_, i) => i + 1)}
+                  label={{ value: 'Position', angle: -90, position: 'insideLeft' }}
+                  stroke="#38003C"
+                />
+                <RechartsTooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#1F2937', 
+                    border: '2px solid #00FF85',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)'
+                  }}
+                  itemStyle={{
+                    color: '#FFFFFF',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}
+                  labelStyle={{
+                    color: '#FFFFFF',
+                    fontSize: '16px',
+                    fontWeight: '700'
+                  }}
+                  labelFormatter={(label) => `Matchweek ${label}`}
+                  formatter={(value) => [`Position ${value}`, '']}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="position" 
+                  stroke="#00FF85" 
+                  strokeWidth={3}
+                  dot={{ fill: '#00FF85', r: 5 }}
+                  activeDot={{ r: 8 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Feature B: Venue-Based Results */}
+      {analyticsData && analyticsData.timeseries && analyticsData.timeseries.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+        >
+          {/* Clustered Bar Chart */}
+          <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6">
+            <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white mb-4">
+              Results by Venue
+            </h2>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={barChartData}
+                  onClick={(data) => {
+                    if (data && data.activePayload && data.activePayload[0]) {
+                      const venue = data.activePayload[0].payload.venue;
+                      setActiveVenue(activeVenue === venue ? 'All' : venue);
+                    }
+                  }}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#38003C" opacity={0.2} />
+                  <XAxis dataKey="venue" stroke="#38003C" />
+                  <YAxis stroke="#38003C" />
+                  <RechartsTooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1F2937', 
+                      border: '2px solid #00FF85',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)'
+                    }}
+                    itemStyle={{
+                      color: '#FFFFFF',
+                      fontSize: '14px',
+                      fontWeight: '600'
+                    }}
+                    labelStyle={{
+                      color: '#FFFFFF',
+                      fontSize: '16px',
+                      fontWeight: '700'
+                    }}
+                  />
+                  <RechartsLegend />
+                  <RechartsBar 
+                    dataKey="W" 
+                    stackId="a" 
+                    fill="#10B981"
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {barChartData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-w-${index}`} 
+                        fill="#10B981"
+                        opacity={entry.opacity}
+                      />
+                    ))}
+                  </RechartsBar>
+                  <RechartsBar 
+                    dataKey="D" 
+                    stackId="a" 
+                    fill="#94A3B8"
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {barChartData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-d-${index}`} 
+                        fill="#94A3B8"
+                        opacity={entry.opacity}
+                      />
+                    ))}
+                  </RechartsBar>
+                  <RechartsBar 
+                    dataKey="L" 
+                    stackId="a" 
+                    fill="#E11D48"
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {barChartData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-l-${index}`} 
+                        fill="#E11D48"
+                        opacity={entry.opacity}
+                      />
+                    ))}
+                  </RechartsBar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Pie Chart */}
+          <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white">
+                {activeVenue === 'All' ? 'Overall Results' : `${activeVenue} Results`}
+              </h2>
+              {activeVenue !== 'All' && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  onClick={() => setActiveVenue('All')}
+                  className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/80 transition-colors text-sm font-semibold"
+                >
+                  Reset Filter
+                </motion.button>
+              )}
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              Showing Results for: <span className="font-semibold text-primary">{activeVenue}</span>
+            </div>
+            <div className="h-80">
+              {pieChartData && pieChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieChartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                      animationBegin={0}
+                      animationDuration={600}
+                      animationEasing="ease-out"
+                    >
+                      {pieChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#1F2937', 
+                        border: '2px solid #00FF85',
+                        borderRadius: '8px',
+                        padding: '12px 16px',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)'
+                      }}
+                      itemStyle={{
+                        color: '#FFFFFF',
+                        fontSize: '14px',
+                        fontWeight: '600'
+                      }}
+                      labelStyle={{
+                        color: '#FFFFFF',
+                        fontSize: '16px',
+                        fontWeight: '700',
+                        marginBottom: '4px'
+                      }}
+                      formatter={(value, name) => {
+                        return [`${value} ${name}`, ''];
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                  No result data available
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
 
       {/* Full Squad List */}
       <motion.div

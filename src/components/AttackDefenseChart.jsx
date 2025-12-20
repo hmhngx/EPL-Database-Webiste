@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { motion } from 'framer-motion';
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const AttackDefenseChart = ({ standings, selectedTeams }) => {
   const chartData = useMemo(() => {
@@ -65,11 +64,7 @@ const AttackDefenseChart = ({ standings, selectedTeams }) => {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="h-96"
-    >
+    <div className="h-96">
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart
           margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
@@ -90,13 +85,11 @@ const AttackDefenseChart = ({ standings, selectedTeams }) => {
             domain={['dataMin - 5', 'dataMax + 5']}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Legend />
           <Scatter
-            name="Teams"
             data={chartData}
             fill="#00FF85"
           >
-            {chartData.map((entry, index) => (
+            {chartData.map((entry) => (
               <Cell
                 key={`cell-${entry.team_id}`}
                 fill={colors[entry.index % colors.length]}
@@ -105,7 +98,7 @@ const AttackDefenseChart = ({ standings, selectedTeams }) => {
           </Scatter>
         </ScatterChart>
       </ResponsiveContainer>
-    </motion.div>
+    </div>
   );
 };
 
