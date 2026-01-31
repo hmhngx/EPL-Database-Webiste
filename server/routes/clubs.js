@@ -155,13 +155,9 @@ router.get('/:id', async (req, res, next) => {
       `);
       if (tableCheck.rows[0].exists) {
         query = managerQuery;
-        console.log('✅ Using manager query with manager_name');
-      } else {
-        console.log('⚠ Managing table does not exist, using base query');
       }
     } catch (err) {
       // If check fails, try the manager query anyway (LEFT JOINs won't fail)
-      console.log('⚠ Manager tables check failed, trying manager query anyway:', err.message);
       try {
         const managerQuery = `
           SELECT DISTINCT ON (t.team_id)
@@ -193,9 +189,8 @@ router.get('/:id', async (req, res, next) => {
           ORDER BY t.team_id, mg.season_start DESC NULLS LAST
         `;
         query = managerQuery;
-        console.log('✅ Using manager query as fallback');
       } catch (fallbackErr) {
-        console.log('⚠ Manager query failed, using base query:', fallbackErr.message);
+        // Fallback to base query if manager query fails
       }
     }
 
@@ -219,13 +214,6 @@ router.get('/:id', async (req, res, next) => {
       ...team,
       logo_url: team.logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(team.team_name)}&background=38003C&color=fff&size=128`
     };
-
-    // Debug: Log manager_name if present
-    if (teamData.manager_name) {
-      console.log(`✅ Manager found for ${teamData.team_name}: ${teamData.manager_name}`);
-    } else {
-      console.log(`⚠ No manager found for ${teamData.team_name} (manager_name: ${teamData.manager_name})`);
-    }
 
     res.json({
       success: true,
@@ -351,6 +339,75 @@ router.get('/:id/squad', async (req, res, next) => {
       duration: `${duration}ms`
     });
   } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/clubs/:id/top-performers
+ * Returns top 5 players by sofascore_rating for a specific club
+ * 
+ * @param {string} id - Club UUID
+ * @returns {Array} Array of top 5 players sorted by sofascore_rating DESC
+ */
+router.get('/:id/top-performers', async (req, res, next) => {
+  const startTime = Date.now();
+  const pool = req.app.locals.pool;
+
+  if (!pool) {
+    return res.status(503).json({
+      success: false,
+      error: 'Database connection not available'
+    });
+  }
+
+  const { id } = req.params;
+
+  try {
+    // Verify team exists
+    const teamCheck = await pool.query(
+      'SELECT team_name FROM team WHERE team_id = $1',
+      [id]
+    );
+
+    if (teamCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Team not found'
+      });
+    }
+
+    // Query top 5 players by sofascore_rating, filtering out NULL and 0
+    const query = `
+      SELECT 
+        p.id,
+        p.player_name,
+        p.position,
+        p.sofascore_rating
+      FROM players p
+      WHERE p.team_id = $1
+        AND p.sofascore_rating IS NOT NULL
+        AND p.sofascore_rating > 0
+      ORDER BY p.sofascore_rating DESC
+      LIMIT 5
+    `;
+
+    const result = await pool.query(query, [id]);
+    const duration = Date.now() - startTime;
+
+    if (duration > 200) {
+      console.warn(`⚠ Top performers query took ${duration}ms (target: <200ms)`);
+    }
+
+    res.json({
+      success: true,
+      team: teamCheck.rows[0].team_name,
+      count: result.rows.length,
+      data: result.rows,
+      duration: `${duration}ms`
+    });
+  } catch (error) {
+    console.error('Error fetching top performers:', error);
     next(error);
   }
 });

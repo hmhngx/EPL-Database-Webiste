@@ -35,7 +35,6 @@ const GoalDifferenceChart = ({ standings }) => {
     const top10 = sortedByGD.slice(0, 10);
 
     if (top10.length === 0) {
-      console.log('GoalDifferenceChart: No teams to display');
       return null;
     }
 
