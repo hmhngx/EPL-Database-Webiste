@@ -1,10 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { FaSpinner, FaCalendarAlt, FaChevronDown, FaVideo } from 'react-icons/fa';
 import LitePlayer from '../components/LitePlayer';
 import TeamLogo from '../components/TeamLogo';
 import FilterHub from '../components/FilterHub';
+import MatchTimeline from '../components/MatchTimeline';
+import MatchStatsDashboard from '../components/MatchStatsDashboard';
 
 const Matches = () => {
   const [matches, setMatches] = useState([]);
@@ -13,6 +16,8 @@ const Matches = () => {
   const [sortType, setSortType] = useState('date_newest');
   const [showHighlights, setShowHighlights] = useState({});
   const [selectedClub, setSelectedClub] = useState(null);
+  const [expandedMatches, setExpandedMatches] = useState({});
+  const [matchDetails, setMatchDetails] = useState({});
 
   useEffect(() => {
     const fetchMatches = async () => {
@@ -379,6 +384,8 @@ const Matches = () => {
           const awayTeamName = match.away_team || match.away_team_name;
           const homeLogoUrl = match.home_logo_url || match.home_logo;
           const awayLogoUrl = match.away_logo_url || match.away_logo;
+          const homeTeamId = match.home_team_id;
+          const awayTeamId = match.away_team_id;
           
           // Determine winner for highlighting
           const homeScore = parseInt(match.home_team_score || 0, 10);
@@ -427,20 +434,41 @@ const Matches = () => {
               <div className="grid grid-cols-3 gap-6 items-center mb-6">
                 {/* Left: Home Team */}
                 <div className="flex flex-col items-center justify-center space-y-3">
-                  <div className={`transition-all duration-300 ${homeWon ? 'opacity-100 scale-105' : 'opacity-90'}`}>
-                    <TeamLogo
-                      logoUrl={homeLogoUrl}
-                      teamName={homeTeamName}
-                      className="w-20 h-20 md:w-24 md:h-24 object-contain drop-shadow-xl"
-                    />
-                  </div>
-                  <p className={`text-sm md:text-base font-bold text-white text-center leading-tight ${homeWon ? 'text-[#00FF85]' : ''} line-clamp-2`}>
-                    {homeTeamName}
-                  </p>
+                  {homeTeamId ? (
+                    <Link to={`/teams/${homeTeamId}`} className="transition-all duration-300 hover:scale-105">
+                      <div className={`transition-all duration-300 ${homeWon ? 'opacity-100 scale-105' : 'opacity-90'}`}>
+                        <TeamLogo
+                          logoUrl={homeLogoUrl}
+                          teamName={homeTeamName}
+                          className="w-20 h-20 md:w-24 md:h-24 object-contain drop-shadow-xl"
+                        />
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className={`transition-all duration-300 ${homeWon ? 'opacity-100 scale-105' : 'opacity-90'}`}>
+                      <TeamLogo
+                        logoUrl={homeLogoUrl}
+                        teamName={homeTeamName}
+                        className="w-20 h-20 md:w-24 md:h-24 object-contain drop-shadow-xl"
+                      />
+                    </div>
+                  )}
+                  {homeTeamId ? (
+                    <Link to={`/teams/${homeTeamId}`} className={`text-sm md:text-base font-bold text-white text-center leading-tight hover:text-[#00FF85] transition-colors ${homeWon ? 'text-[#00FF85]' : ''} line-clamp-2`}>
+                      {homeTeamName}
+                    </Link>
+                  ) : (
+                    <p className={`text-sm md:text-base font-bold text-white text-center leading-tight ${homeWon ? 'text-[#00FF85]' : ''} line-clamp-2`}>
+                      {homeTeamName}
+                    </p>
+                  )}
                 </div>
 
-                {/* Center: Score/Time */}
-                <div className="flex items-center justify-center">
+                {/* Center: Score/Time - Clickable to match detail */}
+                <Link 
+                  to={`/match/${match.match_id}`}
+                  className="flex items-center justify-center hover:opacity-80 transition-opacity"
+                >
                   {hasScore ? (
                     <div className="flex items-center gap-3">
                       <div className={`text-4xl md:text-5xl font-bold ${homeWon ? 'text-[#00FF85]' : 'text-white'}`}>
@@ -456,20 +484,38 @@ const Matches = () => {
                       {formatTime(match.date)}
                     </div>
                   )}
-                </div>
+                </Link>
 
                 {/* Right: Away Team */}
                 <div className="flex flex-col items-center justify-center space-y-3">
-                  <div className={`transition-all duration-300 ${awayWon ? 'opacity-100 scale-105' : 'opacity-90'}`}>
-                    <TeamLogo
-                      logoUrl={awayLogoUrl}
-                      teamName={awayTeamName}
-                      className="w-20 h-20 md:w-24 md:h-24 object-contain drop-shadow-xl"
-                    />
-                  </div>
-                  <p className={`text-sm md:text-base font-bold text-white text-center leading-tight ${awayWon ? 'text-[#00FF85]' : ''} line-clamp-2`}>
-                    {awayTeamName}
-                  </p>
+                  {awayTeamId ? (
+                    <Link to={`/teams/${awayTeamId}`} className="transition-all duration-300 hover:scale-105">
+                      <div className={`transition-all duration-300 ${awayWon ? 'opacity-100 scale-105' : 'opacity-90'}`}>
+                        <TeamLogo
+                          logoUrl={awayLogoUrl}
+                          teamName={awayTeamName}
+                          className="w-20 h-20 md:w-24 md:h-24 object-contain drop-shadow-xl"
+                        />
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className={`transition-all duration-300 ${awayWon ? 'opacity-100 scale-105' : 'opacity-90'}`}>
+                      <TeamLogo
+                        logoUrl={awayLogoUrl}
+                        teamName={awayTeamName}
+                        className="w-20 h-20 md:w-24 md:h-24 object-contain drop-shadow-xl"
+                      />
+                    </div>
+                  )}
+                  {awayTeamId ? (
+                    <Link to={`/teams/${awayTeamId}`} className={`text-sm md:text-base font-bold text-white text-center leading-tight hover:text-[#00FF85] transition-colors ${awayWon ? 'text-[#00FF85]' : ''} line-clamp-2`}>
+                      {awayTeamName}
+                    </Link>
+                  ) : (
+                    <p className={`text-sm md:text-base font-bold text-white text-center leading-tight ${awayWon ? 'text-[#00FF85]' : ''} line-clamp-2`}>
+                      {awayTeamName}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -497,21 +543,29 @@ const Matches = () => {
                   ) : null;
                 })()}
 
-                {/* Highlights Section */}
-                {match.youtube_id && (
-                  <motion.button
-                    onClick={() => setShowHighlights(prev => ({
-                      ...prev,
-                      [match.match_id]: !prev[match.match_id]
-                    }))}
-                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200 font-medium shadow-lg"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                {/* Action Buttons */}
+                <div className="flex flex-col gap-3 mt-4">
+                  <Link
+                    to={`/match/${match.match_id}`}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-[#38003C] hover:bg-[#38003C]/80 text-white rounded-lg transition-colors duration-200 font-medium shadow-lg"
                   >
-                    <FaVideo />
-                    <span>{showHighlights[match.match_id] ? 'Hide Highlights' : 'Watch Highlights'}</span>
-                  </motion.button>
-                )}
+                    <span>View Full Match Details</span>
+                  </Link>
+                  
+                  {match.youtube_id && (
+                    <motion.button
+                      onClick={() => setShowHighlights(prev => ({
+                        ...prev,
+                        [match.match_id]: !prev[match.match_id]
+                      }))}
+                      className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200 font-medium shadow-lg"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <FaVideo />
+                      <span>{showHighlights[match.match_id] ? 'Hide Highlights' : 'Watch Highlights'}</span>
+                    </motion.button>
+                  )}
                 
                 {match.youtube_id && showHighlights[match.match_id] && (
                   <motion.div
@@ -523,6 +577,76 @@ const Matches = () => {
                     <LitePlayer youtubeId={match.youtube_id} />
                   </motion.div>
                 )}
+
+                {/* Match Timeline Toggle */}
+                <motion.button
+                  onClick={async () => {
+                    const matchId = match.match_id;
+                    const isExpanded = expandedMatches[matchId];
+                    
+                    if (!isExpanded && !matchDetails[matchId]) {
+                      // Fetch match details with events
+                      try {
+                        const response = await fetch(`/api/matches/${matchId}`);
+                        if (response.ok) {
+                          const data = await response.json();
+                          setMatchDetails(prev => ({
+                            ...prev,
+                            [matchId]: data.data
+                          }));
+                        }
+                      } catch (err) {
+                        console.error('Failed to fetch match details:', err);
+                      }
+                    }
+                    
+                    setExpandedMatches(prev => ({
+                      ...prev,
+                      [matchId]: !isExpanded
+                    }));
+                  }}
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-primary hover:bg-primary/80 text-white rounded-lg transition-colors duration-200 font-medium shadow-lg mt-3"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span>{expandedMatches[match.match_id] ? 'Hide Details' : 'Show Details'}</span>
+                </motion.button>
+                
+                {/* Match Statistics Dashboard */}
+                {expandedMatches[match.match_id] && matchDetails[match.match_id] && matchDetails[match.match_id].match_stats && (matchDetails[match.match_id].match_stats.home || matchDetails[match.match_id].match_stats.away) && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-3"
+                  >
+                    <MatchStatsDashboard
+                      homeStats={matchDetails[match.match_id].match_stats?.home}
+                      awayStats={matchDetails[match.match_id].match_stats?.away}
+                      homeTeamName={match.home_team}
+                      awayTeamName={match.away_team}
+                      homeLogoUrl={match.home_logo_url || match.home_logo}
+                      awayLogoUrl={match.away_logo_url || match.away_logo}
+                    />
+                  </motion.div>
+                )}
+
+                {/* Match Timeline */}
+                {expandedMatches[match.match_id] && matchDetails[match.match_id] && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-3"
+                  >
+                    <MatchTimeline
+                      events={matchDetails[match.match_id].match_events || []}
+                      homeTeam={match.home_team}
+                      awayTeam={match.away_team}
+                    />
+                  </motion.div>
+                )}
+                </div>
               </div>
             </motion.div>
             );

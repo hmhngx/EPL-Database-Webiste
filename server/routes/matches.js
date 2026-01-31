@@ -188,7 +188,7 @@ router.get('/', async (req, res, next) => {
       baseQuery += ` ORDER BY m.date ${orderDir}, m.id ${orderDir}`;
     } else if (orderByField === 'matchweek') {
       // Order by matchweek first, then by date within each matchweek
-      baseQuery += ` ORDER BY mg.gameweek_num ${orderDir}, m.date ASC, m.id ASC`;
+      baseQuery += ` ORDER BY m.matchweek ${orderDir}, m.date ASC, m.id ASC`;
     } else if (orderByField === 'attendance') {
       // Handle attendance sorting with comma removal
       baseQuery += ` ORDER BY CAST(REPLACE(COALESCE(m.attendance::TEXT, '0'), ',', '') AS INTEGER) ${orderDir}, m.date ${orderDir}`;
@@ -294,6 +294,213 @@ router.get('/', async (req, res, next) => {
 });
 
 /**
+ * GET /api/matches/:id/h2h
+ * Returns head-to-head comparison data for a match
+ * Includes: average stats up to match date, last 5 games form, win probability
+ * 
+ * NOTE: This route must be defined BEFORE /:id to ensure proper routing
+ */
+router.get('/:id/h2h', async (req, res, next) => {
+  const startTime = Date.now();
+  const pool = req.app.locals.pool;
+
+  if (!pool) {
+    return res.status(503).json({
+      success: false,
+      error: 'Database connection not available'
+    });
+  }
+
+  const { id } = req.params;
+
+  try {
+    // First, get the match details to get team IDs and match date
+    const matchQuery = `
+      SELECT 
+        m.id AS match_id,
+        m.date,
+        m.home_team_id,
+        m.away_team_id,
+        h.team_name AS home_team_name,
+        a.team_name AS away_team_name
+      FROM matches m
+      INNER JOIN team h ON m.home_team_id = h.team_id
+      INNER JOIN team a ON m.away_team_id = a.team_id
+      WHERE m.id = $1
+    `;
+
+    const matchResult = await pool.query(matchQuery, [id]);
+    
+    if (matchResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Match not found'
+      });
+    }
+
+    const match = matchResult.rows[0];
+    const matchDate = match.date;
+    const homeTeamId = match.home_team_id;
+    const awayTeamId = match.away_team_id;
+
+    // Fetch average match_stats for both teams up to this match date
+    const statsQuery = `
+      WITH team_matches AS (
+        SELECT 
+          m.id AS match_id,
+          m.date,
+          m.home_team_id,
+          m.away_team_id,
+          CASE 
+            WHEN m.home_team_id = $1 THEN m.home_team_score
+            ELSE m.away_team_score
+          END AS team_score,
+          CASE 
+            WHEN m.home_team_id = $1 THEN m.away_team_score
+            ELSE m.home_team_score
+          END AS opponent_score,
+          CASE 
+            WHEN (m.home_team_id = $1 AND m.home_team_score > m.away_team_score) OR 
+                 (m.away_team_id = $1 AND m.away_team_score > m.home_team_score) THEN 'W'
+            WHEN (m.home_team_id = $1 AND m.home_team_score < m.away_team_score) OR 
+                 (m.away_team_id = $1 AND m.away_team_score < m.home_team_score) THEN 'L'
+            ELSE 'D'
+          END AS result
+        FROM matches m
+        WHERE (m.home_team_id = $1 OR m.away_team_id = $1)
+          AND m.date < $2
+          AND m.id != $3
+      )
+      SELECT 
+        AVG(ms.possession_pct) AS avg_possession,
+        AVG(ms.total_shots) AS avg_shots,
+        AVG(ms.accurate_passes) AS avg_passes,
+        COUNT(DISTINCT ms.match_id) AS matches_count
+      FROM match_stats ms
+      INNER JOIN team_matches tm ON ms.match_id = tm.match_id
+      WHERE ms.team_id = $1
+    `;
+
+    // Get stats for home team
+    const homeStatsResult = await pool.query(statsQuery, [homeTeamId, matchDate, id]);
+    const homeStats = homeStatsResult.rows[0] || {
+      avg_possession: null,
+      avg_shots: null,
+      avg_passes: null,
+      matches_count: 0
+    };
+
+    // Get stats for away team
+    const awayStatsResult = await pool.query(statsQuery, [awayTeamId, matchDate, id]);
+    const awayStats = awayStatsResult.rows[0] || {
+      avg_possession: null,
+      avg_shots: null,
+      avg_passes: null,
+      matches_count: 0
+    };
+
+    // Fetch last 5 games form for both teams
+    const formQuery = `
+      WITH team_matches AS (
+        SELECT 
+          m.id AS match_id,
+          m.date,
+          CASE 
+            WHEN (m.home_team_id = $1 AND m.home_team_score > m.away_team_score) OR 
+                 (m.away_team_id = $1 AND m.away_team_score > m.home_team_score) THEN 'W'
+            WHEN (m.home_team_id = $1 AND m.home_team_score < m.away_team_score) OR 
+                 (m.away_team_id = $1 AND m.away_team_score < m.home_team_score) THEN 'L'
+            ELSE 'D'
+          END AS result
+        FROM matches m
+        WHERE (m.home_team_id = $1 OR m.away_team_id = $1)
+          AND m.date < $2
+          AND m.id != $3
+        ORDER BY m.date DESC, m.id DESC
+        LIMIT 5
+      )
+      SELECT string_agg(result, '' ORDER BY date DESC, match_id DESC) AS form
+      FROM team_matches
+    `;
+
+    const homeFormResult = await pool.query(formQuery, [homeTeamId, matchDate, id]);
+    const awayFormResult = await pool.query(formQuery, [awayTeamId, matchDate, id]);
+
+    const homeForm = homeFormResult.rows[0]?.form || '';
+    const awayForm = awayFormResult.rows[0]?.form || '';
+
+    // Calculate win probability based on form
+    const calculateFormPoints = (form) => {
+      let points = 0;
+      for (const result of form) {
+        if (result === 'W') points += 3;
+        else if (result === 'D') points += 1;
+      }
+      return points;
+    };
+
+    const homeFormPoints = calculateFormPoints(homeForm);
+    const awayFormPoints = calculateFormPoints(awayForm);
+    const totalFormPoints = homeFormPoints + awayFormPoints;
+
+    let homeWinProb = 33;
+    let awayWinProb = 33;
+    let drawProb = 34;
+
+    if (totalFormPoints > 0) {
+      const formDiff = homeFormPoints - awayFormPoints;
+      const baseHomeAdvantage = 5;
+      
+      homeWinProb = Math.max(25, Math.min(50, 35 + (formDiff * 2) + baseHomeAdvantage));
+      awayWinProb = Math.max(25, Math.min(50, 35 - (formDiff * 2)));
+      drawProb = 100 - homeWinProb - awayWinProb;
+      
+      if (drawProb < 20) {
+        const adjustment = (20 - drawProb) / 2;
+        homeWinProb = Math.max(25, homeWinProb - adjustment);
+        awayWinProb = Math.max(25, awayWinProb - adjustment);
+        drawProb = 100 - homeWinProb - awayWinProb;
+      }
+    }
+
+    const duration = Date.now() - startTime;
+
+    res.json({
+      success: true,
+      data: {
+        home: {
+          team_id: homeTeamId,
+          team_name: match.home_team_name,
+          avg_possession: homeStats.avg_possession ? parseFloat(homeStats.avg_possession) : null,
+          avg_shots: homeStats.avg_shots ? parseFloat(homeStats.avg_shots) : null,
+          avg_passes: homeStats.avg_passes ? parseFloat(homeStats.avg_passes) : null,
+          matches_count: parseInt(homeStats.matches_count) || 0,
+          form: homeForm,
+          form_points: homeFormPoints,
+          win_probability: homeWinProb
+        },
+        away: {
+          team_id: awayTeamId,
+          team_name: match.away_team_name,
+          avg_possession: awayStats.avg_possession ? parseFloat(awayStats.avg_possession) : null,
+          avg_shots: awayStats.avg_shots ? parseFloat(awayStats.avg_shots) : null,
+          avg_passes: awayStats.avg_passes ? parseFloat(awayStats.avg_passes) : null,
+          matches_count: parseInt(awayStats.matches_count) || 0,
+          form: awayForm,
+          form_points: awayFormPoints,
+          win_probability: awayWinProb
+        },
+        draw_probability: drawProb
+      },
+      duration: `${duration}ms`
+    });
+  } catch (error) {
+    console.error('Error fetching H2H data:', error);
+    next(error);
+  }
+});
+
+/**
  * GET /api/matches/:id
  * Returns details for a specific match
  * 
@@ -314,19 +521,13 @@ router.get('/:id', async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid match ID format. Expected UUID.'
-      });
-    }
-
+    // Accept both integer and UUID formats - let PostgreSQL handle type conversion
+    // If it's a valid integer, use it as-is; if it's a UUID, use it as-is
     const query = `
       SELECT 
         m.id AS match_id,
         m.date,
+        m.matchweek,
         m.home_team_score,
         m.away_team_score,
         m.youtube_id,
@@ -348,7 +549,7 @@ router.get('/:id', async (req, res, next) => {
       LEFT JOIN stadiums s ON h.stadium_id = s.id
       WHERE m.id = $1
     `;
-
+    
     const result = await pool.query(query, [id]);
     const duration = Date.now() - startTime;
 
@@ -357,6 +558,120 @@ router.get('/:id', async (req, res, next) => {
         success: false,
         error: 'Match not found'
       });
+    }
+
+    // Try to fetch match events (table may not exist or may have different column names)
+    let matchEvents = [];
+    try {
+      // Check what columns exist in match_events table
+      const checkColumnsQuery = `
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'match_events'
+      `;
+      const columnsResult = await pool.query(checkColumnsQuery);
+      const availableColumns = columnsResult.rows.map(row => row.column_name);
+      
+      // Determine which columns to select
+      const hasMinute = availableColumns.some(col => ['minute', 'clock_minute', 'event_minute'].includes(col));
+      const minuteColumn = hasMinute 
+        ? availableColumns.find(col => ['minute', 'clock_minute', 'event_minute'].includes(col))
+        : null;
+      const hasPlayerName = availableColumns.includes('player_name');
+      const hasPlayerId = availableColumns.includes('player_id');
+      const hasTeamName = availableColumns.includes('team_name');
+      const hasTeamId = availableColumns.includes('team_id');
+      
+      // Build SELECT clause dynamically based on available columns
+      // Use 'me' alias for all match_events columns
+      const selectParts = [];
+      if (minuteColumn) {
+        selectParts.push(`me.${minuteColumn} AS minute`);
+      }
+      if (hasPlayerId) {
+        selectParts.push('me.player_id');
+      }
+      if (hasPlayerName) {
+        selectParts.push('me.player_name');
+      }
+      selectParts.push('me.event_type');
+      
+      // Add is_penalty and is_own_goal if they exist
+      const hasIsPenalty = availableColumns.includes('is_penalty');
+      const hasIsOwnGoal = availableColumns.includes('is_own_goal');
+      if (hasIsPenalty) {
+        selectParts.push('me.is_penalty');
+      }
+      if (hasIsOwnGoal) {
+        selectParts.push('me.is_own_goal');
+      }
+      
+      // Always use alias 'me' for match_events table for consistency
+      let fromClause = 'FROM match_events me';
+      if (!hasTeamName && hasTeamId) {
+        selectParts.push('t.team_name');
+        fromClause = 'FROM match_events me LEFT JOIN team t ON me.team_id = t.team_id';
+      } else if (hasTeamName) {
+        selectParts.push('me.team_name');
+      }
+      
+      // Use alias 'me' consistently in ORDER BY and WHERE clauses
+      const orderBy = minuteColumn ? `ORDER BY me.${minuteColumn} ASC, me.id ASC` : 'ORDER BY me.id ASC';
+      const whereClause = 'WHERE me.match_id = $1';
+      
+      const eventsQuery = `
+        SELECT ${selectParts.join(', ')}
+        ${fromClause}
+        ${whereClause}
+        ${orderBy}
+      `;
+      
+      const eventsResult = await pool.query(eventsQuery, [id]);
+      matchEvents = eventsResult.rows.map(row => ({
+        ...row,
+        minute: row.minute || null,
+        player_id: row.player_id || null,
+        team_name: row.team_name || null,
+        player_name: row.player_name || null,
+        is_penalty: row.is_penalty || false,
+        is_own_goal: row.is_own_goal || false
+      }));
+    } catch (err) {
+      // match_events table may not exist, ignore error
+    }
+
+    // Try to fetch match stats for both teams
+    let matchStats = { home: null, away: null };
+    try {
+      const statsQuery = `
+        SELECT 
+          ms.team_id,
+          ms.formation,
+          ms.possession_pct,
+          ms.shots_on_target,
+          ms.total_shots,
+          ms.accurate_passes,
+          ms.corners,
+          ms.fouls_committed,
+          ms.saves
+        FROM match_stats ms
+        WHERE ms.match_id = $1
+      `;
+      
+      const statsResult = await pool.query(statsQuery, [id]);
+      
+      if (statsResult.rows.length > 0) {
+        const match = result.rows[0];
+        statsResult.rows.forEach(stat => {
+          if (stat.team_id === match.home_team_id) {
+            matchStats.home = stat;
+          } else if (stat.team_id === match.away_team_id) {
+            matchStats.away = stat;
+          }
+        });
+      }
+    } catch (err) {
+      // match_stats table may not exist, ignore error
     }
 
     if (duration > 200) {
@@ -368,7 +683,9 @@ router.get('/:id', async (req, res, next) => {
     const matchData = {
       ...match,
       home_logo: match.home_logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(match.home_team)}&background=38003C&color=fff&size=128`,
-      away_logo: match.away_logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(match.away_team)}&background=38003C&color=fff&size=128`
+      away_logo: match.away_logo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(match.away_team)}&background=38003C&color=fff&size=128`,
+      match_events: matchEvents,
+      match_stats: matchStats
     };
 
     res.json({
