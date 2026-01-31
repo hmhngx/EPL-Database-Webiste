@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaSpinner, FaSearch, FaFilter, FaSort, FaSortUp, FaSortDown, FaCrown } from 'react-icons/fa';
 import Filters from '../components/Filters';
@@ -365,7 +366,12 @@ const Players = () => {
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                         <div className="flex items-center space-x-2">
-                          <span>{player.player_name}</span>
+                          <Link
+                            to={`/players/${player.id}`}
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors"
+                          >
+                            {player.player_name}
+                          </Link>
                           {player.is_captain && (
                             <motion.span
                               initial={{ scale: 0 }}
@@ -433,9 +439,12 @@ const Players = () => {
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-2">
-                  <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-white">
+                  <Link
+                    to={`/players/${player.id}`}
+                    className="text-lg font-heading font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors"
+                  >
                     {player.player_name}
-                  </h3>
+                  </Link>
                   {player.is_captain && (
                     <motion.span
                       initial={{ scale: 0 }}
