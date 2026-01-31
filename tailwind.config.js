@@ -23,6 +23,8 @@ export default {
       fontFamily: {
         heading: ['Chakra Petch', 'sans-serif'],
         body: ['Inter', 'sans-serif'],
+        serif: ['Merriweather', 'serif'],
+        mono: ['Chakra Petch', 'monospace'],
       },
       backgroundImage: {
         'gradient-primary': 'linear-gradient(to bottom, #38003C, #000000)',

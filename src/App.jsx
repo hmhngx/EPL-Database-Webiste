@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import './styles/App.css';
@@ -10,7 +10,15 @@ const Matches = lazy(() => import('./pages/Matches'));
 const Clubs = lazy(() => import('./pages/Clubs'));
 const ClubDetail = lazy(() => import('./pages/ClubDetail'));
 const Players = lazy(() => import('./pages/Players'));
+const PlayerDetail = lazy(() => import('./pages/PlayerDetail'));
+const PlayerComparison = lazy(() => import('./pages/PlayerComparison'));
 const MatchDetail = lazy(() => import('./components/MatchDetail'));
+const H2HComparison = lazy(() => import('./components/H2HComparison'));
+const StatsHub = lazy(() => import('./pages/StatsHub'));
+const BestXI = lazy(() => import('./pages/BestXI'));
+const Predictor = lazy(() => import('./pages/Predictor'));
+const Scout = lazy(() => import('./pages/Scout'));
+const Archive = lazy(() => import('./pages/Archive'));
 
 // Loading fallback component with smooth animation
 const LoadingFallback = () => (
@@ -25,16 +33,33 @@ const LoadingFallback = () => (
 );
 
 function App() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <Suspense fallback={<LoadingFallback />}>
       <Routes>
-        <Route path="/" element={<Layout />}>
+        <Route
+          path="/"
+          element={
+            <Layout
+              isSidebarOpen={isSidebarOpen}
+              setIsSidebarOpen={setIsSidebarOpen}
+            />
+          }
+        >
           <Route index element={<Home />} />
           <Route path="standings" element={<Standings />} />
           <Route path="matches" element={<Matches />} />
           <Route path="clubs" element={<Clubs />} />
           <Route path="teams/:id" element={<ClubDetail />} />
           <Route path="players" element={<Players />} />
+          <Route path="players/:id" element={<PlayerDetail />} />
+          <Route path="compare" element={<PlayerComparison />} />
+          <Route path="stats" element={<StatsHub />} />
+          <Route path="bestxi" element={<BestXI />} />
+          <Route path="predictor" element={<Predictor />} />
+          <Route path="scout" element={<Scout />} />
+          <Route path="archive" element={<Archive />} />
           <Route path="match/:id" element={<MatchDetail />} />
         </Route>
       </Routes>

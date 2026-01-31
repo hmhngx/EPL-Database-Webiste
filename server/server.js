@@ -14,6 +14,8 @@ import clubsRouter from './routes/clubs.js';
 import matchesRouter from './routes/matches.js';
 import playersRouter from './routes/players.js';
 import analyticsRouter from './routes/analytics.js';
+import searchRouter from './routes/search.js';
+import aiRouter from './routes/ai.js';
 
 // Load environment variables from project root
 const __filename = fileURLToPath(import.meta.url);
@@ -172,11 +174,11 @@ pool.on('error', (err) => {
 // Monitor pool connections (helpful for debugging in development)
 if (process.env.NODE_ENV === 'development') {
   pool.on('connect', (client) => {
-    console.log('✓ New database client connected to pool');
+    // Client connected to pool
   });
 
   pool.on('remove', (client) => {
-    console.log('✓ Database client removed from pool');
+    // Client removed from pool
   });
 }
 
@@ -259,6 +261,8 @@ app.use('/api/clubs', clubsRouter);
 app.use('/api/matches', matchesRouter);
 app.use('/api/players', playersRouter);
 app.use('/api/analytics', analyticsRouter);
+app.use('/api/search', searchRouter);
+app.use('/api/ai', aiRouter);
 
 // ============================================
 // Error Handling Middleware
