@@ -1,4 +1,4 @@
-# Premier League Analytics & Digital Humanities Corpus Engine
+# Premier League Season 2023/2024 Analytics
 
 <div align="center">
 
@@ -9,9 +9,8 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Recharts](https://img.shields.io/badge/Recharts-Visualization-8884d8?style=for-the-badge)](https://recharts.org/)
 
-**A dual-purpose platform demonstrating advanced sports analytics and reusable unstructured text analysis pipelines for Digital Humanities research.**
 
-[Live Demo](#) • [Documentation](#documentation) • [Research Applicability](#research-applicability)
+[Live Demo](#) • [Documentation](#documentation) •
 
 </div>
 
@@ -27,8 +26,6 @@ This repository implements a **production-grade digital corpus management framew
 - **Multilingual Support Infrastructure:** Ready-to-deploy bilingual content pipelines for parallel Spanish/English text workflows
 - **Diachronic Analysis Capabilities:** Time-series visualization engine (Recharts) for tracking terminology evolution and frequency analysis
 
-**Academic Context:** This framework was conceived as technical infrastructure for Professor Bartosik-Velez's 16th-century Peru colonial document analysis project, demonstrating how sports analytics patterns (match events → historical documents, player statistics → entity mentions) provide reusable architectures for Digital Humanities research.
-
 **Production Environment:** Full-stack React + Express + PostgreSQL application with OpenAI integration, Supabase-hosted vector database, and containerization-ready deployment.
 
 **Cost & Performance:**
@@ -42,6 +39,51 @@ This repository implements a **production-grade digital corpus management framew
 2. **Citation Requirements:** Forced inline citations with match IDs
 3. **Response Validation:** Extract match IDs from response, verify against database
 4. **Confidence Scoring:** Low-confidence responses flagged for human review
+
+---
+
+## Key Features
+
+### 📊 Core Analytics
+- **League Standings & Rankings**: Real-time table with point adjustments and historical tracking
+- **Match Analysis Dashboard**: Detailed match statistics, highlights, and tactical breakdowns
+- **Player Performance Metrics**: Comprehensive stats including xG, xAG, progressive passes, and ratings
+- **Club Analytics**: Time-series charts tracking cumulative points, goals, and position changes
+- **Head-to-Head Comparisons**: Statistical matchups between any two teams
+
+### 🤖 AI-Powered Features
+
+#### ScoutGPT - Career Path Predictor
+- **5-Year Market Value Projections**: Visual forecasts using age-curve analysis
+- **Similar Player Matching**: Find historical precedents using weighted statistical similarity
+- **AI Career Trajectory Analysis**: GPT-4 powered insights on player development
+- **Side-by-Side Comparison Mode**: Compare two players for long-term signing decisions
+- **Position-Specific Modeling**: Different peak ages for GK/DF/MF/FW
+- **Squad Fit Recommendations**: Context-aware advice considering team needs
+
+#### Squad Fragility Index
+- **Risk Assessment Dashboard**: Quantify team reliance on individual players
+- **Interactive Treemap Visualization**: Size = importance, color = risk level
+- **Injury Impact Simulator**: Model consequences of player unavailability
+- **Reliance Score Calculation**: Minutes played × performance percentile
+- **Drop-off Delta Analysis**: Performance gap between starters and substitutes
+- **Replacement Cost Estimation**: Economic impact of losing key players
+- **Real-time What-If Scenarios**: Toggle injuries to see immediate impact
+
+#### RAG (Retrieval-Augmented Generation)
+- **Natural Language Queries**: Ask questions about matches in plain English
+- **Vector Semantic Search**: pgvector-powered similarity matching
+- **Citation-Based Responses**: Every AI answer includes source match references
+- **Match Summaries**: AI-generated narrative summaries of game events
+- **Tactical Insights**: GPT-4 analysis of team performance trends
+
+### 🎨 User Experience
+- **Modern Dark Theme**: Sleek purple/green gradient design with glass morphism
+- **Responsive Design**: Optimized for mobile, tablet, and desktop
+- **Smooth Animations**: Framer Motion powered transitions and interactions
+- **Interactive Charts**: Recharts and Chart.js visualizations with tooltips
+- **Advanced Filtering**: Filter matches by date, team, venue, and result
+- **Best XI Generator**: Automatic team selection based on ratings
 
 ---
 
@@ -293,17 +335,26 @@ football-api/
 │   │   ├── AITacticalAnalyst.jsx  # RAG-powered match insights
 │   │   ├── MatchDetail.jsx        # Match detail view with highlights
 │   │   ├── H2HComparison.jsx      # Head-to-head team comparison
+│   │   ├── CareerPrediction.jsx   # ScoutGPT career path prediction (F34)
+│   │   ├── PlayerComparisonModal.jsx  # Side-by-side player comparison (F34)
+│   │   ├── ProjectedValueChart.jsx    # 5-year market value projections (F34)
 │   │   ├── Sidebar.jsx            # Navigation sidebar
-│   │   └── ...                    # 15+ components
+│   │   └── ...                    # 20+ components
 │   ├── pages/                     # Route-level page components
 │   │   ├── Home.jsx               # Landing page
 │   │   ├── Standings.jsx          # League table + charts
 │   │   ├── ClubDetail.jsx         # Team analytics dashboard
 │   │   ├── Matches.jsx            # Match listings with filters
 │   │   ├── Players.jsx            # Player directory
+│   │   ├── Scout.jsx              # ScoutGPT scouting dashboard (F34)
+│   │   ├── SquadRisk.jsx          # Squad Fragility Index (F35)
+│   │   ├── BestXI.jsx             # Team of the Season generator
 │   │   ├── Archive.jsx            # Historical match archive (F24)
 │   │   ├── PlayerComparison.jsx   # Statistical player comparison
-│   │   └── ...                    # 10+ pages
+│   │   └── ...                    # 15+ pages
+│   ├── utils/                     # Utility functions
+│   │   ├── RiskAnalysis.js        # Squad fragility calculations (F35)
+│   │   └── valuationEngine.js     # Market value estimation (F34)
 │   ├── styles/                    # CSS modules
 │   ├── App.jsx                    # Root component with routing
 │   └── main.jsx                   # Application entry point
@@ -316,10 +367,12 @@ football-api/
 │   │   ├── players.js             # GET /api/players
 │   │   ├── analytics.js           # GET /api/analytics/club/:id
 │   │   ├── ai.js                  # POST /api/llm/query (RAG endpoint)
+│   │   ├── scout.js               # POST /api/scout/predict, /compare (F34)
 │   │   └── search.js              # Semantic search routes
 │   ├── services/                  # Business logic services
 │   │   ├── aiSearchService.js     # Vector similarity search (pgvector)
-│   │   └── llmService.js          # OpenAI GPT-4 integration
+│   │   ├── llmService.js          # OpenAI GPT-4 integration
+│   │   └── playerScoutService.js  # Career prediction & comparison (F34)
 │   └── server.js                  # Express server setup + middleware
 │
 ├── database/                      # Database schema & migrations
@@ -343,12 +396,6 @@ football-api/
 ├── public/                        # Static assets
 │   └── images/                    # Team logos, icons
 │
-├── docs/                          # Architecture documentation
-│   ├── LLM_INTEGRATION_SYSTEM_DESIGN.md      # 1,570-line design doc
-│   ├── RAG_PIPELINE_IMPLEMENTATION.md        # RAG implementation guide
-│   ├── ACADEMIC_PITCH_README.md              # Digital Humanities pitch
-│   └── SYSTEM_ANALYSIS_AND_FEATURE_ROADMAP.md
-│
 ├── package.json                   # Node.js dependencies + scripts
 ├── vite.config.js                 # Vite build configuration
 ├── tailwind.config.js             # Tailwind CSS customization
@@ -356,12 +403,6 @@ football-api/
 ├── vitest.config.js               # Vitest test configuration
 └── README.md                      # This file
 ```
-
-**Key Files for Digital Humanities Adaptation:**
-- `etl/etl_script.py`: Text normalization algorithms (line 156-245: `normalize_team_name`, fuzzy matching)
-- `server/services/aiSearchService.js`: RAG implementation (line 23-78: embedding + vector search)
-- `database/schema.sql`: JSONB metadata architecture (line 89-102: `match_embeddings` table)
-- `src/components/MatchDetail.jsx`: Document detail view template (line 340-580: rich metadata display)
 
 ---
 
@@ -388,6 +429,13 @@ football-api/
 | `/api/llm/match/:id/summary` | GET | `id` (UUID) | `{"summary": "string", "match_id": "uuid"}` | AI-generated match summary |
 | `/api/llm/club/:id/insights` | GET | `id` (UUID) | `{"insights": ["string"], "team_name": "string"}` | Tactical analysis from analytics data |
 | `/api/search/semantic` | POST | `{"query": "string", "filters": {}}` | `[{match_id, content_text, similarity, metadata}]` | Vector similarity search |
+
+### ScoutGPT Endpoints (F34)
+
+| Endpoint | Method | Parameters | Response | Purpose |
+|----------|--------|------------|----------|---------|
+| `/api/scout/predict/:id` | POST | `id` (UUID) | `{"player": {}, "ageCurve": {}, "similarPlayers": [], "marketProjections": [], "analysis": "string"}` | AI-powered career trajectory prediction |
+| `/api/scout/compare` | POST | `{"playerId1": "uuid", "playerId2": "uuid", "clubContext": "string"}` | `{"player1": {}, "player2": {}, "comparison": "string"}` | Side-by-side player comparison with AI recommendation |
 
 ### Health & Utilities
 
@@ -514,6 +562,131 @@ railway up
 
 ---
 
+## 🤖 ScoutGPT - AI Career Path Predictor
+
+**ScoutGPT** is an AI-powered predictive scouting assistant that helps clubs make data-driven long-term signing decisions. It combines age-curve analysis, historical precedents, and market value projections to forecast player career trajectories.
+
+### Features
+
+#### 1. Career Path Prediction
+- **5-Year Market Value Projections**: Visual chart showing projected value over next 5 years
+- **Age-Curve Analysis**: Position-specific career phase classification (Development/Peak/Decline)
+- **Historical Precedents**: Find 3 most similar players using statistical matching
+- **AI-Generated Analysis**: Comprehensive career trajectory insights from GPT-4
+
+#### 2. Player Comparison Mode
+- **Side-by-Side Analysis**: Compare two players for long-term value
+- **Dual Projection Charts**: Visual comparison of 5-year trajectories
+- **Squad Fit Recommendations**: AI considers club context and tactical needs
+- **Clear Recommendations**: Data-driven signing decisions with rationale
+
+### How to Use
+
+#### Quick Start
+1. Navigate to **Scout** page (`/scout`)
+2. Filter players using insight tags (e.g., "Golden Prospects")
+3. Click **"Predict Career"** on any player card
+4. View AI prediction modal with projections and insights
+
+#### Comparison Mode
+1. On Scout page, click **"Compare Mode ON"**
+2. Select 2 players by clicking their cards
+3. Comparison modal opens automatically
+4. Optionally add club context for tailored recommendations
+5. Review AI recommendation and make informed decision
+
+### Age-Curve Models
+
+Position-specific peak ages based on statistical analysis:
+- **Goalkeepers**: Peak at 30 years
+- **Defenders**: Peak at 28 years
+- **Midfielders**: Peak at 27 years
+- **Forwards**: Peak at 26 years
+
+### Performance & Cost
+
+- **Career Prediction**: 10-15 seconds
+- **Player Comparison**: 15-20 seconds  
+- **Similar Players Search**: <200ms
+- **Cost per Prediction**: ~$0.015 (OpenAI API)
+- **Cost per Comparison**: ~$0.020 (OpenAI API)
+
+### Documentation
+
+- **Quick Start**: [`FEATURE_F34_QUICKSTART.md`](./FEATURE_F34_QUICKSTART.md)
+- **Full Documentation**: [`FEATURE_F34_SCOUTGPT.md`](./FEATURE_F34_SCOUTGPT.md)
+- **Testing Guide**: [`FEATURE_F34_TESTING_GUIDE.md`](./FEATURE_F34_TESTING_GUIDE.md)
+- **Implementation Summary**: [`FEATURE_F34_SUMMARY.md`](./FEATURE_F34_SUMMARY.md)
+
+---
+
+## 🚨 Squad Fragility Index
+
+### Risk Assessment & Injury Impact Analysis
+
+Evaluate your team's dependency on critical assets and understand the consequences of losing key players.
+
+#### Features
+
+- **🎯 Risk Analysis**: Quantify team reliance on individual players
+- **📊 Visual Treemap**: See squad fragility at a glance
+- **💉 Injury Simulator**: Model the impact of player unavailability
+- **💰 Economic Context**: Calculate replacement costs
+- **📈 Detailed Metrics**: Comprehensive statistical breakdown
+
+#### Key Metrics
+
+| Metric | Description | Range |
+|--------|-------------|-------|
+| **Reliance Score** | How much the team depends on a player | 0-100 |
+| **Fragility Index** | Risk level considering backup quality | 0-100 |
+| **Drop-off Delta** | Performance gap to substitute | 0-100% |
+| **Replacement Cost** | Estimated transfer fee required | £0-£200M+ |
+
+#### How to Use
+
+1. Navigate to **Squad Risk** in the sidebar
+2. Select a Premier League team
+3. Review the treemap visualization:
+   - **Box size** = Player importance
+   - **Box color** = Risk level (🟢 Low → 🔴 Critical)
+4. Toggle the **Injury Simulator** to model scenarios
+5. View detailed statistics in the risk analysis table
+
+#### Risk Levels
+
+- 🟢 **Low (0-20)**: Well-covered position, minimal risk
+- 🟡 **Medium (20-40)**: Consider adding depth
+- 🟠 **High (40-60)**: Priority for backup signing
+- 🔴 **Critical (60+)**: Urgent action required
+
+#### Calculations
+
+```javascript
+// Reliance Score
+relianceScore = (minutesPlayed / totalMinutes) × performancePercentile × 100
+
+// Fragility Index  
+fragilityIndex = relianceScore × dropOffDelta
+
+// Replacement Cost
+replacementCost = marketValue × 1.4
+```
+
+#### Performance
+
+- ⚡ Initial load: < 2 seconds
+- ⚡ Risk calculation: < 100ms for 25 players
+- ⚡ Treemap render: < 500ms
+- ⚡ Smooth 60fps animations
+
+#### Documentation
+
+- **Technical Docs**: [FEATURE_F35_SQUAD_RISK.md](./FEATURE_F35_SQUAD_RISK.md)
+- **Quick Start**: [FEATURE_F35_QUICKSTART.md](./FEATURE_F35_QUICKSTART.md)
+- **Implementation**: [FEATURE_F35_IMPLEMENTATION_SUMMARY.md](./FEATURE_F35_IMPLEMENTATION_SUMMARY.md)
+- **Integration Guide**: [FEATURE_F35_REAL_STATS_INTEGRATION.md](./FEATURE_F35_REAL_STATS_INTEGRATION.md)
+
 ---
 
 ## Documentation
@@ -521,33 +694,9 @@ railway up
 - **[Backend API Documentation](server/README.md)** - Complete endpoint reference with examples
 - **[Database Schema & Migrations](database/README.md)** - Table structures, views, indexes
 - **[ETL Pipeline Guide](etl/README.md)** - Data ingestion process, normalization algorithms
-- **[RAG Implementation](RAG_PIPELINE_IMPLEMENTATION.md)** - Vector search architecture, embedding generation
-- **[LLM System Design](LLM_INTEGRATION_SYSTEM_DESIGN.md)** - 1,570-line comprehensive design document
-- **[Academic Pitch](ACADEMIC_PITCH_README.md)** - Digital Humanities research alignment
-- **[Feature Roadmap](SYSTEM_ANALYSIS_AND_FEATURE_ROADMAP.md)** - Future enhancements, priorities
 
 ---
 
-## Academic Relevance & Research Questions
-
-This project demonstrates **production-ready infrastructure** for:
-
-### Scalability
-- **Text Processing:** Batch ETL handles 10,000+ documents efficiently (500 records/transaction)
-- **Vector Search:** HNSW indexing provides <10ms query latency
-- **Concurrent Users:** Connection pooling supports 100+ simultaneous queries
-
-### Flexibility
-- **Metadata Schema:** JSONB columns adapt to diverse document types without schema migrations
-- **Multilingual Support:** Unicode normalization, language-specific indexing, parallel text rendering
-- **Domain Transfer:** Replace 380 football matches with 5,000 colonial documents—architecture unchanged
-
-### Cost-Effectiveness
-- **Embedding Generation:** ~$0.15 for 5,000 documents (one-time)
-- **Monthly AI Queries:** $35-50 for 5,000 natural language searches
-- **Database Hosting:** Supabase free tier (500MB) or $25/month (8GB)
-
----
 
 ## Troubleshooting
 
@@ -643,10 +792,8 @@ For academic collaboration inquiries or technical questions about adapting this 
 
 <div align="center">
 
-**© 2024 Premier League Analytics & Digital Humanities Corpus Engine**
+**© 2024 Premier League Analytics**
 
 *"Every match is a document. Every goal, a data point."*
-
-**Last Updated:** January 17, 2026
 
 </div>
