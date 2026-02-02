@@ -15,6 +15,9 @@ import {
   FaClock,
   FaTimes,
   FaBook,
+  FaChartPie,
+  FaExclamationTriangle,
+  FaChartLine,
 } from 'react-icons/fa';
 import NeonTooltip from './NeonTooltip';
 
@@ -27,6 +30,9 @@ const navItems = [
   { path: '/stats', label: 'Stats Hub', icon: FaChartBar },
   { path: '/compare', label: 'Comparison', icon: FaBalanceScale },
   { path: '/bestxi', label: 'Best XI', icon: FaTrophy },
+  { path: '/ffp', label: 'FFP War Room', icon: FaChartPie },
+  { path: '/squad-risk', label: 'Squad Risk', icon: FaExclamationTriangle },
+  { path: '/market-alpha', label: 'Market Alpha', icon: FaChartLine },
   { path: '/archive', label: 'Archive', icon: FaBook },
 ];
 
