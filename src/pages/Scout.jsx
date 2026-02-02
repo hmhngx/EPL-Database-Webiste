@@ -2,9 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaSpinner, FaSearch, FaUser } from 'react-icons/fa';
+import { FaSpinner, FaSearch, FaUser, FaRobot, FaExchangeAlt, FaCheckCircle } from 'react-icons/fa';
 import TeamLogo from '../components/TeamLogo';
 import Breadcrumb from '../components/Breadcrumb';
+import CareerPrediction from '../components/CareerPrediction';
+import PlayerComparisonModal from '../components/PlayerComparisonModal';
 
 const INSIGHT_TAGS = {
   goldenProspects: {
@@ -64,6 +66,11 @@ const Scout = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTags, setActiveTags] = useState(new Set());
+  
+  // AI Features State
+  const [selectedPlayerForPrediction, setSelectedPlayerForPrediction] = useState(null);
+  const [comparisonMode, setComparisonMode] = useState(false);
+  const [selectedPlayersForComparison, setSelectedPlayersForComparison] = useState([]);
 
   // Fetch all players
   useEffect(() => {
@@ -96,6 +103,26 @@ const Scout = () => {
         next.add(tagId);
       }
       return next;
+    });
+  };
+
+  // Toggle comparison mode
+  const toggleComparisonMode = () => {
+    setComparisonMode(!comparisonMode);
+    setSelectedPlayersForComparison([]);
+  };
+
+  // Handle player selection for comparison
+  const handlePlayerSelectionForComparison = (playerId) => {
+    setSelectedPlayersForComparison(prev => {
+      if (prev.includes(playerId)) {
+        return prev.filter(id => id !== playerId);
+      } else if (prev.length < 2) {
+        return [...prev, playerId];
+      } else {
+        // Replace the first player if already 2 selected
+        return [prev[1], playerId];
+      }
     });
   };
 
@@ -197,19 +224,68 @@ const Scout = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl p-6"
         >
-          <div className="flex items-center space-x-4">
-            <div className="flex-shrink-0">
-              <FaSearch className="text-4xl text-[#00FF85]" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <FaSearch className="text-4xl text-[#00FF85]" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-heading font-bold text-white mb-2 tracking-tight">
+                  Scout Discovery Engine
+                </h1>
+                <p className="text-white/60">
+                  Advanced filtering interface for professional player scouting
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-heading font-bold text-white mb-2 tracking-tight">
-                Scout Discovery Engine
-              </h1>
-              <p className="text-white/60">
-                Advanced filtering interface for professional player scouting
-              </p>
+            
+            {/* AI Tools */}
+            <div className="flex space-x-3">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={toggleComparisonMode}
+                className={`
+                  px-4 py-2 rounded-lg border-2 transition-all duration-300 font-semibold text-sm
+                  flex items-center space-x-2
+                  ${comparisonMode
+                    ? 'bg-purple-500/20 border-purple-500 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+                    : 'bg-white/5 border-white/20 text-white/70 hover:border-white/40 hover:text-white/90'
+                  }
+                `}
+              >
+                <FaExchangeAlt />
+                <span>Compare Mode {comparisonMode ? 'ON' : 'OFF'}</span>
+              </motion.button>
             </div>
           </div>
+
+          {/* Comparison Mode Banner */}
+          {comparisonMode && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mt-4 p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg"
+            >
+              <p className="text-purple-300 text-sm mb-2">
+                <FaExchangeAlt className="inline mr-2" />
+                Select 2 players to compare their long-term career trajectories
+              </p>
+              {selectedPlayersForComparison.length > 0 && (
+                <p className="text-white/60 text-sm">
+                  Selected: {selectedPlayersForComparison.length}/2 players
+                </p>
+              )}
+              {selectedPlayersForComparison.length === 2 && (
+                <button
+                  onClick={() => {/* Will be handled by modal */}}
+                  className="mt-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg text-white font-semibold transition-all"
+                >
+                  Compare Selected Players
+                </button>
+              )}
+            </motion.div>
+          )}
         </motion.div>
 
         {/* Insight Tags */}
@@ -299,6 +375,8 @@ const Scout = () => {
                   ? INSIGHT_TAGS[Array.from(activeTags)[0]]
                   : Object.values(INSIGHT_TAGS).find(t => t.filter(player));
 
+                const isSelectedForComparison = selectedPlayersForComparison.includes(player.id);
+
                 return (
                   <motion.div
                     key={player.id}
@@ -307,8 +385,32 @@ const Scout = () => {
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ delay: index * 0.02 }}
                   >
-                    <Link to={`/players/${player.id}`}>
-                      <div className="group relative bg-white/5 backdrop-blur-md border border-white/10 rounded-lg p-3 hover:border-[#00FF85]/50 hover:bg-white/10 transition-all duration-300 cursor-pointer h-full flex flex-col">
+                    <div 
+                      className={`group relative bg-white/5 backdrop-blur-md border rounded-lg p-3 transition-all duration-300 h-full flex flex-col
+                        ${isSelectedForComparison 
+                          ? 'border-purple-500 bg-purple-500/10 shadow-[0_0_15px_rgba(168,85,247,0.3)]' 
+                          : 'border-white/10 hover:border-[#00FF85]/50 hover:bg-white/10'
+                        }
+                      `}
+                      onClick={(e) => {
+                        if (comparisonMode) {
+                          e.preventDefault();
+                          handlePlayerSelectionForComparison(player.id);
+                        }
+                      }}
+                    >
+                      {/* Selection Indicator for Comparison Mode */}
+                      {comparisonMode && isSelectedForComparison && (
+                        <div className="absolute -top-2 -right-2 z-10">
+                          <FaCheckCircle className="text-purple-500 text-xl bg-black rounded-full" />
+                        </div>
+                      )}
+
+                      <Link 
+                        to={comparisonMode ? '#' : `/players/${player.id}`}
+                        onClick={(e) => comparisonMode && e.preventDefault()}
+                      >
+                        <div className="cursor-pointer">
                         {/* Team Logo */}
                         <div className="flex justify-center mb-2">
                           <TeamLogo
@@ -374,17 +476,58 @@ const Scout = () => {
                         {/* Hover Glow Effect */}
                         <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
                           style={{
-                            boxShadow: 'inset 0 0 20px rgba(0, 255, 133, 0.1)'
+                            boxShadow: isSelectedForComparison 
+                              ? 'inset 0 0 20px rgba(168, 85, 247, 0.2)' 
+                              : 'inset 0 0 20px rgba(0, 255, 133, 0.1)'
                           }}
                         />
-                      </div>
-                    </Link>
+                        </div>
+                      </Link>
+
+                      {/* AI Action Buttons (only when not in comparison mode) */}
+                      {!comparisonMode && (
+                        <div className="mt-2 pt-2 border-t border-white/10">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              setSelectedPlayerForPrediction(player.id);
+                            }}
+                            className="w-full px-2 py-1 bg-[#00FF85]/10 hover:bg-[#00FF85]/20 border border-[#00FF85]/30 rounded text-[#00FF85] text-[10px] font-semibold transition-all flex items-center justify-center space-x-1"
+                          >
+                            <FaRobot />
+                            <span>Predict Career</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </motion.div>
                 );
               })}
             </AnimatePresence>
           </motion.div>
         )}
+
+        {/* Modals */}
+        <AnimatePresence>
+          {selectedPlayerForPrediction && (
+            <CareerPrediction
+              playerId={selectedPlayerForPrediction}
+              onClose={() => setSelectedPlayerForPrediction(null)}
+            />
+          )}
+          
+          {comparisonMode && selectedPlayersForComparison.length === 2 && (
+            <PlayerComparisonModal
+              playerId1={selectedPlayersForComparison[0]}
+              playerId2={selectedPlayersForComparison[1]}
+              onClose={() => {
+                setSelectedPlayersForComparison([]);
+                setComparisonMode(false);
+              }}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
