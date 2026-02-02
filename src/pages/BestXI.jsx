@@ -166,6 +166,57 @@ const BestXI = () => {
     return FORMATION_POSITIONS[player.pitchPosition] || FORMATION_POSITIONS.GK;
   };
 
+  // Get tooltip position based on player's location on pitch
+  const getTooltipPosition = (player) => {
+    const position = getPitchPosition(player);
+    const bottomPercent = parseFloat(position.bottom);
+    
+    // If player is in top half of pitch (forwards), show tooltip below
+    if (bottomPercent > 60) {
+      return {
+        position: 'top-full',
+        margin: 'mt-3',
+        transform: 'translate(-50%, 0)'
+      };
+    }
+    // For middle third (midfielders), check left/right side
+    else if (bottomPercent > 35) {
+      const leftPercent = parseFloat(position.left);
+      // Left side - show tooltip to the right
+      if (leftPercent < 40) {
+        return {
+          position: 'left-full',
+          margin: 'ml-3',
+          transform: 'translate(0, -50%)'
+        };
+      }
+      // Right side - show tooltip to the left
+      else if (leftPercent > 60) {
+        return {
+          position: 'right-full',
+          margin: 'mr-3',
+          transform: 'translate(0, -50%)'
+        };
+      }
+      // Center - show above
+      else {
+        return {
+          position: 'bottom-full',
+          margin: 'mb-3',
+          transform: 'translate(-50%, 0)'
+        };
+      }
+    }
+    // Bottom third (defenders/GK) - show tooltip above
+    else {
+      return {
+        position: 'bottom-full',
+        margin: 'mb-3',
+        transform: 'translate(-50%, 0)'
+      };
+    }
+  };
+
   // Handle share mode
   const handleShare = () => {
     setIsShareMode(true);
@@ -248,7 +299,7 @@ const BestXI = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-8 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl p-6"
+              className="mb-8 glass-hud-premium rounded-xl p-6"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
@@ -357,11 +408,14 @@ const BestXI = () => {
             >
               {bestXI.map((player) => {
                 const position = getPitchPosition(player);
+                const tooltipPos = getTooltipPosition(player);
 
                 return (
                   <motion.div
                     key={player.id}
                     variants={playerVariants}
+                    initial="hidden"
+                    animate="visible"
                     className="absolute group"
                     style={{
                       bottom: position.bottom,
@@ -397,11 +451,16 @@ const BestXI = () => {
                         </div>
                       </motion.div>
 
-                      {/* Tooltip on Hover */}
+                      {/* Tooltip on Hover - Intelligently Positioned */}
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 hidden group-hover:block z-20 pointer-events-none"
+                        className={`absolute ${tooltipPos.position} ${tooltipPos.margin} hidden group-hover:block z-20 pointer-events-none`}
+                        style={{
+                          left: tooltipPos.position.includes('left') || tooltipPos.position.includes('right') ? 'auto' : '50%',
+                          top: tooltipPos.position.includes('left') || tooltipPos.position.includes('right') ? '50%' : 'auto',
+                          transform: tooltipPos.transform
+                        }}
                       >
                         <div className="bg-gray-900/95 backdrop-blur-md text-white text-xs rounded-lg px-3 py-2 shadow-xl whitespace-nowrap border border-white/20">
                           <p className="font-bold">{player.player_name}</p>
