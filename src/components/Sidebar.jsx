@@ -10,6 +10,7 @@ import {
   FaChartBar,
   FaBalanceScale,
   FaTrophy,
+  FaPlus,
   FaSearch,
   FaStar,
   FaClock,
@@ -30,9 +31,8 @@ const navItems = [
   { path: '/stats', label: 'Stats Hub', icon: FaChartBar },
   { path: '/compare', label: 'Comparison', icon: FaBalanceScale },
   { path: '/bestxi', label: 'Best XI', icon: FaTrophy },
-  { path: '/ffp', label: 'FFP War Room', icon: FaChartPie },
   { path: '/squad-risk', label: 'Squad Risk', icon: FaExclamationTriangle },
-  { path: '/market-alpha', label: 'Market Alpha', icon: FaChartLine },
+  { path: '/squad-builder', label: 'Squad Builder', icon: FaPlus },
   { path: '/archive', label: 'Archive', icon: FaBook },
 ];
 
