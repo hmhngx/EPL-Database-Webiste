@@ -19,9 +19,8 @@ const BestXI = lazy(() => import('./pages/BestXI'));
 const Predictor = lazy(() => import('./pages/Predictor'));
 const Scout = lazy(() => import('./pages/Scout'));
 const Archive = lazy(() => import('./pages/Archive'));
-const FFPWarRoom = lazy(() => import('./pages/FFPWarRoom'));
 const SquadRisk = lazy(() => import('./pages/SquadRisk'));
-const MarketAlpha = lazy(() => import('./pages/MarketAlpha'));
+const SquadBuilder = lazy(() => import('./pages/SquadBuilder'));
 
 // Loading fallback component with smooth animation
 const LoadingFallback = () => (
@@ -63,9 +62,8 @@ function App() {
           <Route path="predictor" element={<Predictor />} />
           <Route path="scout" element={<Scout />} />
           <Route path="archive" element={<Archive />} />
-          <Route path="ffp" element={<FFPWarRoom />} />
           <Route path="squad-risk" element={<SquadRisk />} />
-          <Route path="market-alpha" element={<MarketAlpha />} />
+          <Route path="squad-builder" element={<SquadBuilder />} />
           <Route path="match/:id" element={<MatchDetail />} />
         </Route>
       </Routes>
