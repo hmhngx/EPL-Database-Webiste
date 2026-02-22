@@ -13,7 +13,8 @@ import {
   FaSpinner,
   FaTimes,
   FaUser,
-  FaBook
+  FaBook,
+  FaPlus
 } from 'react-icons/fa';
 import TeamLogo from '../components/TeamLogo';
 import logoImage from '/images/EPLdbWebsite.png';
@@ -325,6 +326,19 @@ const Home = () => {
         <div className="flex flex-col items-center space-y-3 mt-4">
           <div className="w-20 h-16 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center"> <FaBook className="text-2xl text-[#0a0a0a]" /></div>
           <p className="text-white/70 text-sm text-center">Explore Historical Data</p>
+        </div>
+      ),
+    },
+    {
+      id: 'squad-builder',
+      title: 'Squad Builder',
+      subtitle: 'Build Your Team',
+      route: '/squad-builder',
+      icon: FaPlus,
+      preview: (
+        <div className="flex flex-col items-center space-y-3 mt-4">
+          <div className="w-20 h-16 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center"> <FaPlus className="text-2xl text-[#0a0a0a]" /></div>
+          <p className="text-white/70 text-sm text-center">Build Your Team</p>
         </div>
       ),
     },

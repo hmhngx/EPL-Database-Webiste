@@ -137,24 +137,39 @@ try {
     if (error.code) {
       console.error('Error code:', error.code);
     }
-    if (error.message.includes('password') || error.message.includes('authentication')) {
+    if (error.code === 'ENOTFOUND') {
+      console.error('');
+      console.error('Host not found (DNS failed). Your SUPABASE_CONNECTION_STRING host is wrong or unreachable.');
+      console.error('');
+      console.error('Do this:');
+      console.error('  1. Open https://supabase.com/dashboard and select your project');
+      console.error('  2. If you see "Project paused", click Restore project and wait ~1 min');
+      console.error('  3. Go to Project Settings → General and copy your Reference ID');
+      console.error('  4. Go to Project Settings → Database → Connection string');
+      console.error('  5. Copy the URI (or Connection pooling URI) and put it in .env as:');
+      console.error('     SUPABASE_CONNECTION_STRING=<paste the full URI>');
+      console.error('  6. Replace [YOUR-PASSWORD] with your database password (no brackets)');
+      console.error('  7. Restart the server');
+      console.error('');
+    } else if (error.message.includes('password') || error.message.includes('authentication')) {
       console.error('');
       console.error('Authentication error detected. Common causes:');
       console.error('  - Incorrect database password');
       console.error('  - Special characters in password need URL encoding');
       console.error('  - Password contains: @, #, $, %, &, etc.');
-    }
-    if (error.message.includes('SSL') || error.code === '23505') {
+    } else if (error.message.includes('SSL') || error.code === '23505') {
       console.error('');
       console.error('SSL error detected. Supabase requires SSL connections.');
     }
-    console.error('');
-    console.error('Troubleshooting:');
-    console.error('1. Verify your SUPABASE_CONNECTION_STRING is correct');
-    console.error('2. Check that your IP is allowed in Supabase firewall');
-    console.error('3. Ensure your database password is URL-encoded if it has special chars');
-    console.error('4. Make sure SSL is enabled (required for Supabase)');
-    console.error('5. Test connection string format: postgresql://user:pass@host:port/db');
+    if (error.code !== 'ENOTFOUND') {
+      console.error('');
+      console.error('Troubleshooting:');
+      console.error('1. Verify your SUPABASE_CONNECTION_STRING is correct');
+      console.error('2. Check that your IP is allowed in Supabase firewall');
+      console.error('3. Ensure your database password is URL-encoded if it has special chars');
+      console.error('4. Make sure SSL is enabled (required for Supabase)');
+      console.error('5. Test connection string format: postgresql://user:pass@host:port/db');
+    }
     console.error('='.repeat(60));
     console.error('Server will start but API endpoints will return 503 errors.');
     console.error('Fix the connection string and restart the server.');
