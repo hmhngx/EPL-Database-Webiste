@@ -10,35 +10,15 @@
 [![Recharts](https://img.shields.io/badge/Recharts-Visualization-8884d8?style=for-the-badge)](https://recharts.org/)
 
 
-[Live Demo](#) • [Documentation](#documentation) •
+[Documentation](#documentation)
 
 </div>
 
 ---
 
-## Executive Summary
+## Summary
 
-This repository implements a **production-grade digital corpus management framework** currently deployed for Premier League 2023/24 season analytics, but architecturally designed as a **domain-agnostic text analysis engine**. The system demonstrates core competencies directly transferable to historical text corpus management:
-
-- **Text Normalization & Entity Extraction:** Python ETL pipeline with fuzzy string matching (RapidFuzz), regex-based entity recognition, Unicode normalization, and batch processing (500 records/transaction)
-- **Metadata Architecture:** PostgreSQL 3NF schema with JSONB flexible tagging for faceted search across temporal, geographic, and categorical dimensions
-- **RAG (Retrieval-Augmented Generation):** Vector-based semantic search using pgvector (HNSW indexing) with OpenAI embeddings (1536-dim) for natural language queries with strict source citation
-- **Multilingual Support Infrastructure:** Ready-to-deploy bilingual content pipelines for parallel Spanish/English text workflows
-- **Diachronic Analysis Capabilities:** Time-series visualization engine (Recharts) for tracking terminology evolution and frequency analysis
-
-**Production Environment:** Full-stack React + Express + PostgreSQL application with OpenAI integration, Supabase-hosted vector database, and containerization-ready deployment.
-
-**Cost & Performance:**
-- **Embedding Generation:** $0.02 per 1M tokens (380 matches ≈ 76,000 tokens ≈ **$0.0015**)
-- **Vector Search Latency:** <10ms with HNSW index (Hierarchical Navigable Small World graph)
-- **LLM Inference:** ~$0.02 per query (GPT-4 Turbo pricing)
-- **Monthly Estimate (5,000 queries):** ~$35 without caching, ~$18 with 50% cache hit rate
-
-**Hallucination Mitigation Strategies:**
-1. **Context-Only Responses:** System prompt enforces "use ONLY provided context"
-2. **Citation Requirements:** Forced inline citations with match IDs
-3. **Response Validation:** Extract match IDs from response, verify against database
-4. **Confidence Scoring:** Low-confidence responses flagged for human review
+Full-stack **Premier League 2023/24 analytics** app: standings, matches, clubs, players, time-series charts, head-to-head comparison, Best XI, ScoutGPT (career prediction & comparison), Squad Fragility Index, and optional RAG (natural-language queries over matches with pgvector + OpenAI). Built with React 19, Vite, Express, PostgreSQL (Supabase), and Tailwind.
 
 ---
 
@@ -104,16 +84,16 @@ This repository implements a **production-grade digital corpus management framew
 | Technology | Version | Purpose | Justification |
 |-----------|---------|---------|---------------|
 | **React 19** | 19.0.0 | UI library | Concurrent rendering, automatic batching, Server Components roadmap compatibility |
-| **Vite** | 5.0 | Build tool | <200ms HMR (Hot Module Replacement), ESM-native, 10x faster than Webpack for dev server |
+| **Vite** | 6.x | Build tool | Fast HMR, ESM-native build, optimized dev server |
 | **React Router DOM** | 7.0 | Client-side routing | Nested routes, data loaders, error boundaries, type-safe navigation |
 | **Tailwind CSS** | 3.4 | Utility-first styling | 90% smaller bundle vs. Bootstrap, JIT compilation, responsive design primitives |
-| **Framer Motion** | 11.x | Animation engine | Declarative animations, gesture support, layout animations with `layoutId` |
+| **Framer Motion** | 12.x | Animation engine | Declarative animations, gesture support, layout animations for formation transitions |
 
 ### Visualization & AI
 
 | Technology | Version | Purpose | Justification |
 |-----------|---------|---------|---------------|
-| **Recharts** | 2.10 | Data visualization | Composable chart components, responsive SVG rendering, animation support |
+| **Recharts** | 2.15 | Data visualization | Composable chart components, responsive SVG rendering, animation support |
 | **Chart.js** | 4.4 | Interactive charts | Canvas-based rendering (better for large datasets), plugin ecosystem |
 | **OpenAI API** | GPT-4 Turbo | LLM inference | 128K context window, function calling, JSON mode, streaming support |
 | **text-embedding-3-small** | 1536-dim | Vector embeddings | $0.02/1M tokens, strong retrieval performance, Matryoshka representation (truncatable dimensions) |
@@ -196,10 +176,7 @@ Expected output: ~1,200 packages installed in `node_modules/`, Python packages i
 2. Paste into **SQL Editor** and click **Run**
 3. Verify tables created: `stadiums`, `team`, `players`, `matches`, `managing`, `managers`, `point_adjustments`
 
-**3.5. Run RAG Migration:**
-1. Copy contents of `database/migrations/create_match_semantic_search_function.sql`
-2. Paste into **SQL Editor** and click **Run**
-3. Verify function: `SELECT match_semantic_search('[0.1,0.2,...]'::vector(1536), 5);`
+**3.5. Run RAG migration (optional):** Run `database/migrations/create_match_semantic_search_function.sql` in SQL Editor if you use RAG features.
 
 ### Step 4: Environment Variables
 
@@ -261,27 +238,6 @@ Loading matches... 380 records inserted
 ETL process completed successfully!
 ```
 
-**Generate Embeddings for RAG:**
-
-```powershell
-# Return to project root
-cd ..
-
-# Run embedding generation script
-python scripts\populateEmbeddings.py
-```
-
-Expected output:
-```
-Processing 380 matches...
-Batch 1/4: 100 matches, 20,450 tokens, $0.0004
-Batch 2/4: 100 matches, 19,820 tokens, $0.0004
-Batch 3/4: 100 matches, 21,100 tokens, $0.0004
-Batch 4/4: 80 matches, 16,240 tokens, $0.0003
-Total: 77,610 tokens, $0.0016
-HNSW index created successfully!
-```
-
 ### Step 6: Start Application
 
 **Open two PowerShell terminals:**
@@ -315,11 +271,9 @@ VITE v5.0.8  ready in 420 ms
 1. **Open browser:** Navigate to `http://localhost:5173`
 2. **Check API health:** Navigate to `http://localhost:5000/health`
    - Should return: `{"status":"ok","database":"connected"}`
-3. **Test Standings page:** Click "Standings" in navigation
-   - Should display league table with 20 teams
-4. **Test RAG (if embeddings loaded):**
+3. **Test Standings page:** Click "Standings" in navigation — league table with 20 teams
+4. **Test RAG (if embeddings and OpenAI are configured):**
    ```powershell
-   # In a third PowerShell terminal
    Invoke-RestMethod -Uri "http://localhost:5000/api/llm/query" -Method POST -ContentType "application/json" -Body '{"query":"Tell me about Arsenal matches"}'
    ```
 
@@ -345,16 +299,16 @@ football-api/
 │   │   ├── Standings.jsx          # League table + charts
 │   │   ├── ClubDetail.jsx         # Team analytics dashboard
 │   │   ├── Matches.jsx            # Match listings with filters
-│   │   ├── Players.jsx            # Player directory
-│   │   ├── Scout.jsx              # ScoutGPT scouting dashboard (F34)
-│   │   ├── SquadRisk.jsx          # Squad Fragility Index (F35)
+│   │   ├── Players.jsx             # Player directory
+│   │   ├── Scout.jsx               # ScoutGPT scouting dashboard
+│   │   ├── SquadRisk.jsx          # Squad Fragility Index
 │   │   ├── BestXI.jsx             # Team of the Season generator
-│   │   ├── Archive.jsx            # Historical match archive (F24)
+│   │   ├── Archive.jsx            # Historical match archive
 │   │   ├── PlayerComparison.jsx   # Statistical player comparison
-│   │   └── ...                    # 15+ pages
+│   │   └── ...                    # Other pages
 │   ├── utils/                     # Utility functions
-│   │   ├── RiskAnalysis.js        # Squad fragility calculations (F35)
-│   │   └── valuationEngine.js     # Market value estimation (F34)
+│   │   ├── RiskAnalysis.js        # Squad fragility calculations
+│   │   └── valuationEngine.js     # Market value estimation (ScoutGPT)
 │   ├── styles/                    # CSS modules
 │   ├── App.jsx                    # Root component with routing
 │   └── main.jsx                   # Application entry point
@@ -367,12 +321,12 @@ football-api/
 │   │   ├── players.js             # GET /api/players
 │   │   ├── analytics.js           # GET /api/analytics/club/:id
 │   │   ├── ai.js                  # POST /api/llm/query (RAG endpoint)
-│   │   ├── scout.js               # POST /api/scout/predict, /compare (F34)
+│   │   ├── scout.js               # POST /api/scout/predict, /compare
 │   │   └── search.js              # Semantic search routes
 │   ├── services/                  # Business logic services
 │   │   ├── aiSearchService.js     # Vector similarity search (pgvector)
 │   │   ├── llmService.js          # OpenAI GPT-4 integration
-│   │   └── playerScoutService.js  # Career prediction & comparison (F34)
+│   │   └── playerScoutService.js  # Career prediction & comparison
 │   └── server.js                  # Express server setup + middleware
 │
 ├── database/                      # Database schema & migrations
@@ -387,11 +341,6 @@ football-api/
 │   ├── etl_script.py              # Main ETL pipeline (Python)
 │   ├── requirements.txt           # Python dependencies
 │   └── README.md                  # ETL documentation
-│
-├── scripts/                       # Utility scripts
-│   ├── populateEmbeddings.py      # Generate OpenAI embeddings (F29)
-│   ├── generateMatchContext.py    # Create rich narrative text for RAG
-│   └── README.md                  # Scripts documentation
 │
 ├── public/                        # Static assets
 │   └── images/                    # Team logos, icons
@@ -418,19 +367,19 @@ football-api/
 | `/api/clubs/:id/squad` | GET | `id` (UUID) | `[{player_id, player_name, position, nationality, age, jersey_number, is_captain}]` | Squad roster sorted by position |
 | `/api/matches` | GET | `?matchweek=5&club=uuid&dateFrom=2023-08-01&dateTo=2024-05-19&result=win&venue=home` | `[{id, home_team, away_team, score, date, matchweek, attendance, youtube_id}]` | Filtered match listings |
 | `/api/matches/:id` | GET | `id` (UUID) | `{id, home_team, away_team, score, date, matchweek, attendance, referee, youtube_id, stadium}` | Match detail with highlights |
-| `/api/players` | GET | `?position=FW&club_id=uuid` | `[{id, player_name, team_name, position, nationality, age, jersey_number, is_captain}]` | Player directory with filters |
-| `/api/analytics/club/:id` | GET | `id` (UUID) | `[{matchweek, cumulative_points, cumulative_gf, cumulative_ga, cumulative_gd, position}]` | Time-series club analytics (F27) |
+| `/api/players` | GET | `?position=FW&club_id=uuid` | `[{id, player_name, team_name, position, nationality, age, jersey_number, ...}]` | Player directory |
+| `/api/analytics/club/:id` | GET | `id` (UUID) | `[{matchweek, cumulative_points, cumulative_gf, cumulative_ga, cumulative_gd, position}]` | Time-series club analytics |
 
 ### RAG/AI Endpoints
 
 | Endpoint | Method | Parameters | Response | Purpose |
 |----------|--------|------------|----------|---------|
-| `/api/llm/query` | POST | `{"query": "string", "matchCount": 5}` | `{"answer": "string", "sources": [{match_id, date}]}` | Natural language queries with citations (F29) |
+| `/api/llm/query` | POST | `{"query": "string", "matchCount": 5}` | `{"answer": "string", "sources": [{match_id, date}]}` | Natural language queries with citations |
 | `/api/llm/match/:id/summary` | GET | `id` (UUID) | `{"summary": "string", "match_id": "uuid"}` | AI-generated match summary |
 | `/api/llm/club/:id/insights` | GET | `id` (UUID) | `{"insights": ["string"], "team_name": "string"}` | Tactical analysis from analytics data |
 | `/api/search/semantic` | POST | `{"query": "string", "filters": {}}` | `[{match_id, content_text, similarity, metadata}]` | Vector similarity search |
 
-### ScoutGPT Endpoints (F34)
+### ScoutGPT Endpoints
 
 | Endpoint | Method | Parameters | Response | Purpose |
 |----------|--------|------------|----------|---------|
@@ -523,42 +472,9 @@ railway up
 
 ---
 
-## Cost Analysis (AI Features)
+## Cost (AI / RAG)
 
-### Monthly Estimates (Conservative Usage)
-
-| Feature | Requests/Month | Cost per Request | Monthly Cost |
-|---------|----------------|------------------|--------------|
-| **Embedding Generation** (one-time) | 380 matches × 200 tokens | $0.02 / 1M tokens | **$0.0015** |
-| **Match Summaries** | 1,000 queries | $0.015 | $15.00 |
-| **Club Insights** | 500 queries | $0.033 | $16.50 |
-| **Season Narratives** | 200 queries | $0.062 | $12.40 |
-| **Natural Language Queries** | 2,000 queries | $0.022 | $44.00 |
-| **Total (no caching)** | | | **$87.90** |
-| **With 50% cache hit rate** | | | **$43.95** |
-
-### Cost Optimization Strategies
-
-1. **Aggressive Caching:**
-   - Match summaries: 24-hour TTL (matches don't change after completion)
-   - Club insights: 6-hour TTL (standings may update)
-   - Target: 60-70% cache hit rate → **~$30/month**
-
-2. **Model Selection:**
-   - Use GPT-3.5 Turbo for simple queries (10x cheaper: $0.0015/1K tokens)
-   - Reserve GPT-4 Turbo for complex analysis
-   - Hybrid strategy: **~$25/month**
-
-3. **Lazy Loading:**
-   - Generate summaries/insights on-demand only
-   - Don't pre-generate all 380 match summaries
-   - User-driven generation: **~$20/month**
-
-4. **Batch Processing:**
-   - Generate embeddings in batches of 100 (reduce API overhead)
-   - Pre-compute common queries during off-peak hours
-
-**Recommended Budget for Production:** $50-75/month with monitoring alerts at $60/month threshold.
+OpenAI usage (RAG, ScoutGPT) depends on how you use the app. Set billing limits in the OpenAI dashboard and cache responses where possible to reduce cost.
 
 ---
 
@@ -610,13 +526,6 @@ Position-specific peak ages based on statistical analysis:
 - **Similar Players Search**: <200ms
 - **Cost per Prediction**: ~$0.015 (OpenAI API)
 - **Cost per Comparison**: ~$0.020 (OpenAI API)
-
-### Documentation
-
-- **Quick Start**: [`FEATURE_F34_QUICKSTART.md`](./FEATURE_F34_QUICKSTART.md)
-- **Full Documentation**: [`FEATURE_F34_SCOUTGPT.md`](./FEATURE_F34_SCOUTGPT.md)
-- **Testing Guide**: [`FEATURE_F34_TESTING_GUIDE.md`](./FEATURE_F34_TESTING_GUIDE.md)
-- **Implementation Summary**: [`FEATURE_F34_SUMMARY.md`](./FEATURE_F34_SUMMARY.md)
 
 ---
 
@@ -680,13 +589,6 @@ replacementCost = marketValue × 1.4
 - ⚡ Treemap render: < 500ms
 - ⚡ Smooth 60fps animations
 
-#### Documentation
-
-- **Technical Docs**: [FEATURE_F35_SQUAD_RISK.md](./FEATURE_F35_SQUAD_RISK.md)
-- **Quick Start**: [FEATURE_F35_QUICKSTART.md](./FEATURE_F35_QUICKSTART.md)
-- **Implementation**: [FEATURE_F35_IMPLEMENTATION_SUMMARY.md](./FEATURE_F35_IMPLEMENTATION_SUMMARY.md)
-- **Integration Guide**: [FEATURE_F35_REAL_STATS_INTEGRATION.md](./FEATURE_F35_REAL_STATS_INTEGRATION.md)
-
 ---
 
 ## Documentation
@@ -742,15 +644,7 @@ PORT=5001
 
 **Issue:** OpenAI API rate limit exceeded
 
-**Solution:**
-```python
-# Adjust BATCH_SIZE in scripts/populateEmbeddings.py
-BATCH_SIZE = 50  # Reduce from 100
-
-# Add delay between batches
-import time
-time.sleep(2)  # 2-second delay
-```
+**Solution:** Reduce request frequency (e.g. smaller batch sizes, delays between calls) or add backoff/retry in your API client.
 
 ---
 
